@@ -1,0 +1,200 @@
+{
+  "name": "BIRD-CRITIC 1.0 (open)",
+  "source": "bird-critic-open.jsonl",
+  "records": 600,
+  "roles": {
+    "text": "query",
+    "answer": "issue_sql",
+    "group": "db_id",
+    "labels": [
+      "dialect",
+      "category"
+    ]
+  },
+  "schema": {
+    "dialect": {
+      "type": "str",
+      "present": 600,
+      "type_counts": {
+        "str": 600
+      }
+    },
+    "version": {
+      "type": "str",
+      "present": 600,
+      "type_counts": {
+        "str": 600
+      }
+    },
+    "instance_id": {
+      "type": "str",
+      "present": 600,
+      "type_counts": {
+        "str": 600
+      }
+    },
+    "db_id": {
+      "type": "str",
+      "present": 600,
+      "type_counts": {
+        "str": 600
+      }
+    },
+    "query": {
+      "type": "str",
+      "present": 600,
+      "type_counts": {
+        "str": 600
+      }
+    },
+    "issue_sql": {
+      "type": "list",
+      "present": 600,
+      "type_counts": {
+        "list": 600
+      }
+    },
+    "preprocess_sql": {
+      "type": "list",
+      "present": 600,
+      "type_counts": {
+        "list": 600
+      }
+    },
+    "clean_up_sql": {
+      "type": "list",
+      "present": 600,
+      "type_counts": {
+        "list": 600
+      }
+    },
+    "category": {
+      "type": "str",
+      "present": 600,
+      "type_counts": {
+        "str": 600
+      }
+    },
+    "efficiency": {
+      "type": "bool",
+      "present": 600,
+      "type_counts": {
+        "bool": 600
+      }
+    }
+  },
+  "malformed_lines": 0,
+  "schema_issues": 0,
+  "schema_issue_examples": [],
+  "degenerate_records": 0,
+  "degenerate_examples": [],
+  "distributions": {
+    "group_field": "db_id",
+    "distinct_groups": 15,
+    "items_per_group_mean": 40.0,
+    "top_group_share": 0.1383,
+    "groups": {
+      "european_football_2": 83,
+      "toxicology": 68,
+      "financial": 64,
+      "card_games": 59,
+      "superhero": 51,
+      "formula_1": 47,
+      "debit_card_specializing": 46,
+      "student_club": 45,
+      "california_schools": 40,
+      "thrombosis_prediction": 35,
+      "erolp": 30,
+      "codebase_community": 19,
+      "esophageal": 8,
+      "global_atlas": 3,
+      "spotify": 2
+    },
+    "dialect": {
+      "PostgreSQL": 300,
+      "MySQL": 100,
+      "Oracle": 100,
+      "SQLServer": 100
+    },
+    "category": {
+      "Query": 304,
+      "Personalization": 162,
+      "Management": 104,
+      "Efficiency": 30
+    }
+  },
+  "similarity_method": "exact-all-pairs",
+  "similarity_threshold": 0.7,
+  "candidate_pairs_examined": 179700,
+  "duplicates": {
+    "exact_duplicate_text_groups": 4,
+    "exact_duplicate_text_records": 8,
+    "exact_duplicate_answer_groups": 5,
+    "exact_duplicate_answer_records": 10,
+    "near_duplicate_pairs": 4,
+    "near_duplicate_clusters": 4,
+    "records_in_clusters": 8,
+    "fully_identical_clusters": 1,
+    "records_fully_identical": 2,
+    "shared_stem_variant_clusters": 3
+  },
+  "rates_pct": {
+    "exact_duplicate_text": 1.33,
+    "records_in_clusters": 1.33,
+    "fully_identical": 0.33
+  },
+  "fully_identical_detail": [
+    {
+      "members": [
+        "SQLServer_70",
+        "SQLServer_71"
+      ],
+      "size": 2
+    }
+  ],
+  "shared_stem_variant_detail": [
+    {
+      "members": [
+        "PostgreSQL_215",
+        "PostgreSQL_216"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "PostgreSQL_262",
+        "PostgreSQL_263"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "PostgreSQL_265",
+        "PostgreSQL_266"
+      ],
+      "size": 2
+    }
+  ],
+  "top_near_duplicate_pairs": [
+    {
+      "a": "PostgreSQL_215",
+      "b": "PostgreSQL_216",
+      "similarity": 1.0
+    },
+    {
+      "a": "PostgreSQL_262",
+      "b": "PostgreSQL_263",
+      "similarity": 1.0
+    },
+    {
+      "a": "PostgreSQL_265",
+      "b": "PostgreSQL_266",
+      "similarity": 1.0
+    },
+    {
+      "a": "SQLServer_70",
+      "b": "SQLServer_71",
+      "similarity": 1.0
+    }
+  ]
+}

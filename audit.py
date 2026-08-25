@@ -1,54 +1,80 @@
-"""audit.py - integrity audit for the BIRD-CRITIC 1.0 benchmark.
+"""audit.py - reproducible integrity audit for any Hugging Face dataset.
 
-Usage:
-    python audit.py prep --data bird-critic-open.jsonl [--out-dir prepared]
+    python audit.py fetch --dataset xlangai/spider --split train --out spider.jsonl
+    python audit.py prep  --data spider.jsonl --preset spider --out-dir prepared/spider
+    python audit.py compare prepared/*/summary.json --out COMPARISON.md
 
-`prep` loads the raw dataset export, validates and normalizes every record,
-then measures the structural properties a benchmark consumer should know
-before quoting a score against it: duplicate and near-duplicate items,
-cross-dialect restatements of the same problem, database reuse, and
-degenerate records.
+`prep` validates the schema, flags degenerate records, and measures how much
+of a dataset is redundant: exact duplicates on the natural-language field,
+exact duplicates on the reference SQL/answer field, and near-duplicates by
+shingle Jaccard.
 
-Pure standard library. No numpy, no pandas.
+Near-duplicate search is exact all-pairs on small datasets and MinHash-LSH
+candidate generation above --lsh-threshold records. LSH only proposes
+candidates; every reported pair is verified with the true Jaccard score, so
+the similarity numbers mean the same thing under both methods. Recall is not
+guaranteed under LSH, and the method actually used is recorded in the summary
+and printed in the report.
+
+Standard library only, except `datasets` for `fetch`.
 """
 
 import argparse
+import glob
 import json
 import re
 import sys
+import zlib
 from collections import Counter, defaultdict
 from pathlib import Path
 
-EXPECTED_FIELDS = {
-    "dialect": str,
-    "version": str,
-    "instance_id": str,
-    "db_id": str,
-    "query": str,
-    "issue_sql": list,
-    "preprocess_sql": list,
-    "clean_up_sql": list,
-    "category": str,
-    "efficiency": bool,
-}
-
-# Near-duplicate threshold. Two queries are counted as restatements of one
-# problem when their word-shingle Jaccard similarity is at or above this.
 NEAR_DUP_THRESHOLD = 0.70
 SHINGLE_SIZE = 3
+
+# Above this many records, switch from exact all-pairs to MinHash-LSH.
+LSH_SWITCH_AT = 3000
+MINHASH_PERMS = 128
+LSH_BANDS = 32          # 32 bands x 4 rows: tuned for recall at t=0.70,
+LSH_ROWS = 4            # since candidates are exactly verified afterwards.
+_MERSENNE = (1 << 61) - 1
+
+# Field roles per dataset. `text` is the natural-language side, `answer` the
+# reference SQL or solution, `group` the schema/source the item is drawn from.
+PRESETS = {
+    "bird-critic": {
+        "text": "query", "answer": "issue_sql", "group": "db_id",
+        "labels": ["dialect", "category"],
+    },
+    "spider": {
+        "text": "question", "answer": "query", "group": "db_id",
+        "labels": [],
+    },
+    "generic": {
+        "text": "question", "answer": None, "group": None, "labels": [],
+    },
+}
 
 _WS = re.compile(r"\s+")
 _SQL_COMMENT = re.compile(r"--[^\n]*|/\*.*?\*/", re.DOTALL)
 
 
 def normalize_text(s):
-    """Lowercase, strip, collapse whitespace. For comparison keys only."""
     return _WS.sub(" ", (s or "").strip().lower())
 
 
 def normalize_sql(s):
-    """Normalize SQL for comparison: drop comments, collapse whitespace."""
     return _WS.sub(" ", _SQL_COMMENT.sub(" ", (s or "")).strip().lower())
+
+
+def as_text(value):
+    """Coerce a field to a single string; datasets use both str and list."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, tuple)):
+        return " ".join(as_text(v) for v in value)
+    return str(value)
 
 
 def shingles(text, n=SHINGLE_SIZE):
@@ -62,13 +88,219 @@ def jaccard(a, b):
     if not a or not b:
         return 0.0
     inter = len(a & b)
-    if not inter:
-        return 0.0
-    return inter / len(a | b)
+    return inter / len(a | b) if inter else 0.0
 
+
+# --- fetch -----------------------------------------------------------------
+
+def fetch(args):
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        sys.exit("error: pip install datasets")
+    kwargs = {"split": args.split}
+    if args.config:
+        kwargs["name"] = args.config
+    ds = load_dataset(args.dataset, **kwargs)
+    print(f"{args.dataset} [{args.split}]: {len(ds)} rows, "
+          f"fields {ds.column_names}")
+    ds.to_json(args.out)
+    print(f"wrote {args.out}")
+
+
+# --- schema ----------------------------------------------------------------
+
+def infer_schema(records):
+    """Majority type per field, plus how often each field is present."""
+    types, presence = defaultdict(Counter), Counter()
+    for r in records:
+        for k, v in r.items():
+            presence[k] += 1
+            types[k][type(v).__name__] += 1
+    return {k: {"type": types[k].most_common(1)[0][0],
+                "present": presence[k],
+                "type_counts": dict(types[k])} for k in presence}
+
+
+def validate(records, schema):
+    """Flag missing fields and records deviating from the majority type."""
+    issues = []
+    total = len(records)
+    for i, r in enumerate(records):
+        for field, info in schema.items():
+            if info["present"] < total and field not in r:
+                issues.append({"index": i, "problem": "missing_field",
+                               "field": field})
+            elif field in r and type(r[field]).__name__ != info["type"]:
+                issues.append({"index": i, "problem": "inconsistent_type",
+                               "field": field, "majority": info["type"],
+                               "got": type(r[field]).__name__})
+    return issues
+
+
+def find_degenerate(records, roles):
+    out = []
+    for i, r in enumerate(records):
+        reasons = []
+        if not as_text(r.get(roles["text"])).strip():
+            reasons.append("empty_text")
+        if roles["answer"] and not as_text(r.get(roles["answer"])).strip():
+            reasons.append("empty_answer")
+        if roles["group"] and not as_text(r.get(roles["group"])).strip():
+            reasons.append("empty_group")
+        if reasons:
+            out.append({"index": i, "id": record_id(r, i), "reasons": reasons})
+    return out
+
+
+def record_id(r, i):
+    for key in ("instance_id", "id", "task_id", "_id"):
+        if r.get(key) is not None:
+            return str(r[key])
+    return f"row_{i}"
+
+
+# --- duplicates ------------------------------------------------------------
+
+def find_exact_dupes(records, key_fn):
+    buckets = defaultdict(list)
+    for i, r in enumerate(records):
+        k = key_fn(r)
+        if k:
+            buckets[k].append(i)
+    return {k: v for k, v in buckets.items() if len(v) > 1}
+
+
+def all_pairs(sigs, threshold):
+    pairs = []
+    for i in range(len(sigs)):
+        si = sigs[i]
+        if not si:
+            continue
+        for j in range(i + 1, len(sigs)):
+            score = jaccard(si, sigs[j])
+            if score >= threshold:
+                pairs.append((i, j, score))
+    return pairs
+
+
+def _hash_shingle(s):
+    # zlib.crc32, not hash(): Python randomizes string hashing per process,
+    # which would make LSH bucketing differ between runs.
+    return zlib.crc32(s.encode("utf-8")) & 0xFFFFFFFF
+
+
+def minhash_signature(shingle_set, perms):
+    if not shingle_set:
+        return None
+    hashed = [_hash_shingle(s) for s in shingle_set]
+    return [min(((a * h + b) % _MERSENNE) for h in hashed) for a, b in perms]
+
+
+def lsh_pairs(sigs, threshold, perms):
+    """MinHash-LSH candidate generation, then exact Jaccard verification."""
+    signatures = {}
+    for i, s in enumerate(sigs):
+        sig = minhash_signature(s, perms)
+        if sig is not None:
+            signatures[i] = sig
+
+    candidates = set()
+    for band in range(LSH_BANDS):
+        lo, hi = band * LSH_ROWS, (band + 1) * LSH_ROWS
+        buckets = defaultdict(list)
+        for i, sig in signatures.items():
+            buckets[tuple(sig[lo:hi])].append(i)
+        for members in buckets.values():
+            if len(members) < 2:
+                continue
+            # A pathological bucket would blow up quadratically; cap it.
+            if len(members) > 200:
+                members = members[:200]
+            for x in range(len(members)):
+                for y in range(x + 1, len(members)):
+                    candidates.add((members[x], members[y]))
+
+    pairs = []
+    for i, j in candidates:
+        score = jaccard(sigs[i], sigs[j])
+        if score >= threshold:
+            pairs.append((i, j, score))
+    return pairs, len(candidates)
+
+
+def make_perms(n, seed=20260824):
+    """Deterministic (a, b) coefficients. Fixed seed keeps runs reproducible."""
+    state = seed
+    perms = []
+    for _ in range(n):
+        state = (state * 6364136223846793005 + 1442695040888963407) & ((1 << 64) - 1)
+        a = (state >> 17) % (_MERSENNE - 1) + 1
+        state = (state * 6364136223846793005 + 1442695040888963407) & ((1 << 64) - 1)
+        b = (state >> 17) % _MERSENNE
+        perms.append((a, b))
+    return perms
+
+
+def connected_components(pairs, n):
+    parent = list(range(n))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for i, j, _ in pairs:
+        ri, rj = find(i), find(j)
+        if ri != rj:
+            parent[ri] = rj
+
+    groups = defaultdict(list)
+    for i in range(n):
+        groups[find(i)].append(i)
+    return [g for g in groups.values() if len(g) > 1]
+
+
+def classify_clusters(clusters, records, roles):
+    """Separate true duplicates from variants sharing only a question stem.
+
+    Records sharing a stem are not automatically a defect: a dataset may pair
+    one question with different reference answers or categories on purpose.
+    Only records identical across every evaluated field are redundant.
+    """
+    fields = [f for f in (roles["text"], roles["answer"], roles["group"])
+              if f] + list(roles["labels"])
+    identical, variant = [], []
+    for c in clusters:
+        first = records[c[0]]
+        same = all(all(records[m].get(f) == first.get(f) for f in fields)
+                   for m in c[1:])
+        entry = {"members": [record_id(records[m], m) for m in c],
+                 "size": len(c)}
+        (identical if same else variant).append(entry)
+    return identical, variant
+
+
+def distributions(records, roles):
+    out = {}
+    if roles["group"]:
+        by_group = Counter(as_text(r.get(roles["group"])) for r in records)
+        out["group_field"] = roles["group"]
+        out["distinct_groups"] = len(by_group)
+        out["items_per_group_mean"] = round(len(records) / max(len(by_group), 1), 2)
+        out["top_group_share"] = round(
+            by_group.most_common(1)[0][1] / len(records), 4) if by_group else 0.0
+        out["groups"] = dict(by_group.most_common(20))
+    for label in roles["labels"]:
+        out[label] = dict(Counter(as_text(r.get(label))
+                                  for r in records).most_common())
+    return out
+
+
+# --- prep ------------------------------------------------------------------
 
 def load(path):
-    """Read jsonl, returning (records, malformed_line_numbers)."""
     records, malformed = [], []
     with open(path, encoding="utf-8") as fh:
         for lineno, line in enumerate(fh, 1):
@@ -82,312 +314,257 @@ def load(path):
     return records, malformed
 
 
-def validate(records):
-    """Check every record against the expected schema. Returns issue list."""
-    issues = []
-    for i, r in enumerate(records):
-        for field, want in EXPECTED_FIELDS.items():
-            if field not in r:
-                issues.append({"index": i, "instance_id": r.get("instance_id"),
-                               "problem": "missing_field", "field": field})
-            elif not isinstance(r[field], want):
-                issues.append({"index": i, "instance_id": r.get("instance_id"),
-                               "problem": "wrong_type", "field": field,
-                               "expected": want.__name__,
-                               "got": type(r[field]).__name__})
-    return issues
-
-
-def find_degenerate(records):
-    """Records that cannot support a meaningful evaluation."""
-    out = []
-    for r in records:
-        reasons = []
-        if not (r.get("query") or "").strip():
-            reasons.append("empty_query")
-        if not [s for s in r.get("issue_sql") or [] if s.strip()]:
-            reasons.append("empty_issue_sql")
-        if not (r.get("db_id") or "").strip():
-            reasons.append("empty_db_id")
-        if reasons:
-            out.append({"instance_id": r.get("instance_id"), "reasons": reasons})
-    return out
-
-
-def find_exact_dupes(records, key_fn):
-    """Group records by a normalized key; return groups with more than one."""
-    buckets = defaultdict(list)
-    for r in records:
-        k = key_fn(r)
-        if k:
-            buckets[k].append(r)
-    return {k: v for k, v in buckets.items() if len(v) > 1}
-
-
-def find_near_dupes(records, threshold=NEAR_DUP_THRESHOLD):
-    """All-pairs shingle similarity over `query`. O(n^2), fine at this size."""
-    sigs = [(r, shingles(r.get("query", ""))) for r in records]
-    pairs = []
-    for i in range(len(sigs)):
-        ri, si = sigs[i]
-        if not si:
-            continue
-        for j in range(i + 1, len(sigs)):
-            rj, sj = sigs[j]
-            score = jaccard(si, sj)
-            if score >= threshold:
-                pairs.append({
-                    "a": ri.get("instance_id"), "b": rj.get("instance_id"),
-                    "a_dialect": ri.get("dialect"), "b_dialect": rj.get("dialect"),
-                    "similarity": round(score, 4),
-                    "cross_dialect": ri.get("dialect") != rj.get("dialect"),
-                })
-    return pairs
-
-
-def connected_components(pairs, records):
-    """Cluster near-duplicate pairs into groups of one underlying problem."""
-    parent = {r["instance_id"]: r["instance_id"] for r in records
-              if r.get("instance_id")}
-
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    for p in pairs:
-        a, b = p["a"], p["b"]
-        if a in parent and b in parent:
-            ra, rb = find(a), find(b)
-            if ra != rb:
-                parent[ra] = rb
-
-    groups = defaultdict(list)
-    for iid in parent:
-        groups[find(iid)].append(iid)
-    return [g for g in groups.values() if len(g) > 1]
-
-
-def classify_clusters(clusters, records):
-    """Separate true duplicates from deliberate variants.
-
-    Two records sharing a question stem are not necessarily a benchmark
-    defect: BIRD-CRITIC pairs some questions so the same stem appears with a
-    different `issue_sql` or a different `category`. Only records identical
-    across every evaluated field are redundant.
-    """
-    by_id = {r["instance_id"]: r for r in records if r.get("instance_id")}
-    fields = ("query", "issue_sql", "preprocess_sql", "clean_up_sql",
-              "category", "db_id", "dialect")
-    identical, variant = [], []
-    for c in clusters:
-        members = [by_id[i] for i in c if i in by_id]
-        if not members:
-            continue
-        first = members[0]
-        same = all(all(m.get(f) == first.get(f) for f in fields)
-                   for m in members[1:])
-        entry = {
-            "members": sorted(c),
-            "categories": sorted({m.get("category") for m in members}),
-            "db_id": first.get("db_id"),
-        }
-        (identical if same else variant).append(entry)
-    return identical, variant
-
-
-def distributions(records):
-    by_dialect = Counter(r.get("dialect") for r in records)
-    by_category = Counter(r.get("category") for r in records)
-    by_db = Counter(r.get("db_id") for r in records)
-    return {
-        "dialect": dict(by_dialect.most_common()),
-        "category": dict(by_category.most_common()),
-        "db_id": dict(by_db.most_common()),
-        "efficiency_flagged": sum(1 for r in records if r.get("efficiency")),
-        "distinct_db_ids": len(by_db),
-        "items_per_db_mean": round(len(records) / max(len(by_db), 1), 2),
-        "top_db_share": round(
-            by_db.most_common(1)[0][1] / len(records), 4) if by_db else 0.0,
-    }
+def resolve_roles(args, records):
+    roles = dict(PRESETS[args.preset])
+    if args.text_field:
+        roles["text"] = args.text_field
+    if args.answer_field:
+        roles["answer"] = args.answer_field
+    if args.group_field:
+        roles["group"] = args.group_field
+    if args.label_fields:
+        roles["labels"] = [f for f in args.label_fields.split(",") if f]
+    present = set().union(*(r.keys() for r in records)) if records else set()
+    if roles["text"] not in present:
+        sys.exit(f"error: text field '{roles['text']}' not in data. "
+                 f"Available: {sorted(present)}. Pass --text-field.")
+    for role in ("answer", "group"):
+        if roles[role] and roles[role] not in present:
+            print(f"  note: {role} field '{roles[role]}' absent; skipping")
+            roles[role] = None
+    roles["labels"] = [f for f in roles["labels"] if f in present]
+    return roles
 
 
 def prep(args):
     data_path = Path(args.data)
     if not data_path.exists():
-        sys.exit(f"error: {data_path} not found. "
-                 "Run the download step first (see README).")
+        sys.exit(f"error: {data_path} not found. Run `audit.py fetch` first.")
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     records, malformed = load(data_path)
-    print(f"loaded {len(records)} records from {data_path}")
-    if malformed:
-        print(f"  WARNING: {len(malformed)} malformed lines: {malformed[:10]}")
+    if not records:
+        sys.exit(f"error: no records in {data_path}")
+    roles = resolve_roles(args, records)
+    name = args.name or data_path.stem
+    print(f"{name}: {len(records)} records | text='{roles['text']}' "
+          f"answer='{roles['answer']}' group='{roles['group']}'")
 
-    schema_issues = validate(records)
-    degenerate = find_degenerate(records)
+    schema = infer_schema(records)
+    schema_issues = validate(records, schema)
+    degenerate = find_degenerate(records, roles)
 
-    dup_query = find_exact_dupes(records, lambda r: normalize_text(r.get("query")))
-    dup_issue_sql = find_exact_dupes(
+    dup_text = find_exact_dupes(
+        records, lambda r: normalize_text(as_text(r.get(roles["text"]))))
+    dup_answer = find_exact_dupes(
         records,
-        lambda r: " ".join(normalize_sql(s) for s in r.get("issue_sql") or []))
+        lambda r: normalize_sql(as_text(r.get(roles["answer"])))
+    ) if roles["answer"] else {}
 
-    print("computing near-duplicate pairs (all-pairs shingle Jaccard)...")
-    near = find_near_dupes(records)
-    clusters = connected_components(near, records)
-    cross = [p for p in near if p["cross_dialect"]]
-    identical_clusters, variant_clusters = classify_clusters(clusters, records)
+    sigs = [shingles(as_text(r.get(roles["text"]))) for r in records]
+    n = len(records)
+    if n > args.lsh_threshold:
+        method = "minhash-lsh"
+        print(f"  n>{args.lsh_threshold}: MinHash-LSH "
+              f"({MINHASH_PERMS} perms, {LSH_BANDS}x{LSH_ROWS}), "
+              f"candidates verified exactly...")
+        pairs, n_candidates = lsh_pairs(sigs, args.threshold,
+                                        make_perms(MINHASH_PERMS))
+    else:
+        method = "exact-all-pairs"
+        print(f"  n<={args.lsh_threshold}: exact all-pairs "
+              f"({n * (n - 1) // 2} comparisons)...")
+        pairs = all_pairs(sigs, args.threshold)
+        n_candidates = n * (n - 1) // 2
 
-    dist = distributions(records)
+    clusters = connected_components(pairs, n)
+    identical, variant = classify_clusters(clusters, records, roles)
+    dist = distributions(records, roles)
 
-    # Normalized copy, one record per line, comparison keys attached.
-    prepared_path = out_dir / "prepared.jsonl"
-    with open(prepared_path, "w", encoding="utf-8") as fh:
-        for r in records:
-            out = dict(r)
-            out["_query_norm"] = normalize_text(r.get("query"))
-            out["_issue_sql_norm"] = [normalize_sql(s)
-                                      for s in r.get("issue_sql") or []]
-            fh.write(json.dumps(out, ensure_ascii=False) + "\n")
+    def pct(x):
+        return round(100.0 * x / n, 2) if n else 0.0
 
     summary = {
+        "name": name,
         "source": str(data_path),
-        "records": len(records),
-        "malformed_lines": malformed,
-        "schema_issues": schema_issues,
-        "degenerate_records": degenerate,
+        "records": n,
+        "roles": roles,
+        "schema": schema,
+        "malformed_lines": len(malformed),
+        "schema_issues": len(schema_issues),
+        "schema_issue_examples": schema_issues[:20],
+        "degenerate_records": len(degenerate),
+        "degenerate_examples": degenerate[:20],
         "distributions": dist,
+        "similarity_method": method,
+        "similarity_threshold": args.threshold,
+        "candidate_pairs_examined": n_candidates,
         "duplicates": {
-            "exact_duplicate_query_groups": len(dup_query),
-            "exact_duplicate_query_records": sum(len(v) for v in dup_query.values()),
-            "exact_duplicate_issue_sql_groups": len(dup_issue_sql),
-            "exact_duplicate_issue_sql_records": sum(
-                len(v) for v in dup_issue_sql.values()),
-            "near_duplicate_threshold": NEAR_DUP_THRESHOLD,
-            "near_duplicate_pairs": len(near),
-            "near_duplicate_pairs_cross_dialect": len(cross),
+            "exact_duplicate_text_groups": len(dup_text),
+            "exact_duplicate_text_records": sum(len(v) for v in dup_text.values()),
+            "exact_duplicate_answer_groups": len(dup_answer),
+            "exact_duplicate_answer_records": sum(len(v) for v in dup_answer.values()),
+            "near_duplicate_pairs": len(pairs),
             "near_duplicate_clusters": len(clusters),
-            "records_in_near_duplicate_clusters": sum(len(c) for c in clusters),
-            "fully_identical_clusters": len(identical_clusters),
-            "records_fully_identical": sum(len(c["members"])
-                                           for c in identical_clusters),
-            "shared_stem_variant_clusters": len(variant_clusters),
+            "records_in_clusters": sum(len(c) for c in clusters),
+            "fully_identical_clusters": len(identical),
+            "records_fully_identical": sum(c["size"] for c in identical),
+            "shared_stem_variant_clusters": len(variant),
         },
-        "fully_identical_detail": identical_clusters,
-        "shared_stem_variant_detail": variant_clusters,
-        "near_duplicate_examples": sorted(
-            near, key=lambda p: -p["similarity"])[:25],
+        "rates_pct": {
+            "exact_duplicate_text": pct(sum(len(v) for v in dup_text.values())),
+            "records_in_clusters": pct(sum(len(c) for c in clusters)),
+            "fully_identical": pct(sum(c["size"] for c in identical)),
+        },
+        "fully_identical_detail": identical[:50],
+        "shared_stem_variant_detail": variant[:50],
+        "top_near_duplicate_pairs": [
+            {"a": record_id(records[i], i), "b": record_id(records[j], j),
+             "similarity": round(s, 4)}
+            for i, j, s in sorted(pairs, key=lambda p: -p[2])[:25]],
     }
-    summary_path = out_dir / "summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False),
-                            encoding="utf-8")
 
-    report_path = out_dir / "REPORT.md"
-    report_path.write_text(render_report(summary), encoding="utf-8")
+    (out_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    (out_dir / "REPORT.md").write_text(render_report(summary), encoding="utf-8")
 
-    print(f"\nwrote {prepared_path}")
-    print(f"wrote {summary_path}")
-    print(f"wrote {report_path}")
-    print("\n--- headline numbers ---")
+    if not args.no_prepared:
+        with open(out_dir / "prepared.jsonl", "w", encoding="utf-8") as fh:
+            for r in records:
+                out = dict(r)
+                out["_text_norm"] = normalize_text(as_text(r.get(roles["text"])))
+                if roles["answer"]:
+                    out["_answer_norm"] = normalize_sql(
+                        as_text(r.get(roles["answer"])))
+                fh.write(json.dumps(out, ensure_ascii=False) + "\n")
+
     d = summary["duplicates"]
-    print(f"  records                      {summary['records']}")
-    print(f"  schema issues                {len(schema_issues)}")
-    print(f"  degenerate records           {len(degenerate)}")
-    print(f"  distinct databases           {dist['distinct_db_ids']}")
-    print(f"  exact dup query groups       {d['exact_duplicate_query_groups']}")
-    print(f"  exact dup issue_sql groups   {d['exact_duplicate_issue_sql_groups']}")
-    print(f"  near-dup pairs               {d['near_duplicate_pairs']}")
-    print(f"    of which cross-dialect     {d['near_duplicate_pairs_cross_dialect']}")
-    print(f"  near-dup clusters            {d['near_duplicate_clusters']}")
-    print(f"    fully identical            {d['fully_identical_clusters']} "
-          f"({d['records_fully_identical']} records)")
-    print(f"    shared-stem variants       {d['shared_stem_variant_clusters']}")
+    print(f"  schema issues {summary['schema_issues']} | "
+          f"degenerate {summary['degenerate_records']} | "
+          f"exact-dup text groups {d['exact_duplicate_text_groups']} | "
+          f"clusters {d['near_duplicate_clusters']} "
+          f"(identical {d['fully_identical_clusters']}, "
+          f"variant {d['shared_stem_variant_clusters']}) | "
+          f"identical rate {summary['rates_pct']['fully_identical']}%")
+    print(f"  wrote {out_dir}/REPORT.md, {out_dir}/summary.json")
 
 
 def render_report(s):
-    d = s["duplicates"]
-    dist = s["distributions"]
-    n = s["records"]
-
-    def pct(x):
-        return f"{100.0 * x / n:.1f}%" if n else "n/a"
-
+    d, dist, n = s["duplicates"], s["distributions"], s["records"]
+    r = s["rates_pct"]
     lines = [
-        "# BIRD-CRITIC 1.0 (open) - integrity report",
-        "",
-        f"Generated by `audit.py prep` from `{s['source']}`.",
-        "",
-        "## Dataset shape",
-        "",
+        f"# {s['name']} - integrity report", "",
+        f"Generated by `audit.py prep` from `{s['source']}`.", "",
+        "## Shape", "",
         f"- **{n}** records",
-        f"- **{dist['distinct_db_ids']}** distinct databases "
-        f"({dist['items_per_db_mean']} items per database on average)",
-        f"- largest single database accounts for "
-        f"**{100 * dist['top_db_share']:.1f}%** of all records",
-        f"- **{dist['efficiency_flagged']}** records flagged `efficiency=true`",
-        "",
-        "| Dialect | Records |", "|---|---|",
+        f"- fields audited: text=`{s['roles']['text']}`, "
+        f"answer=`{s['roles']['answer']}`, group=`{s['roles']['group']}`",
     ]
-    for k, v in dist["dialect"].items():
-        lines.append(f"| {k} | {v} |")
-    lines += ["", "| Category | Records |", "|---|---|"]
-    for k, v in dist["category"].items():
-        lines.append(f"| {k} | {v} |")
+    if dist.get("distinct_groups"):
+        lines += [
+            f"- **{dist['distinct_groups']}** distinct "
+            f"`{dist['group_field']}` values "
+            f"({dist['items_per_group_mean']} items each on average)",
+            f"- largest accounts for **{100 * dist['top_group_share']:.1f}%** "
+            f"of all records",
+        ]
+    for label in s["roles"]["labels"]:
+        if label in dist:
+            lines += ["", f"| {label} | Records |", "|---|---|"]
+            lines += [f"| {k} | {v} |" for k, v in dist[label].items()]
 
     lines += [
-        "", "## Integrity findings", "",
-        f"- malformed JSON lines: **{len(s['malformed_lines'])}**",
-        f"- schema violations: **{len(s['schema_issues'])}**",
-        f"- degenerate records (empty query / issue_sql / db_id): "
-        f"**{len(s['degenerate_records'])}**",
-        f"- exact duplicate `query` groups: "
-        f"**{d['exact_duplicate_query_groups']}** "
-        f"covering {d['exact_duplicate_query_records']} records "
-        f"({pct(d['exact_duplicate_query_records'])})",
-        f"- exact duplicate `issue_sql` groups: "
-        f"**{d['exact_duplicate_issue_sql_groups']}** "
-        f"covering {d['exact_duplicate_issue_sql_records']} records "
-        f"({pct(d['exact_duplicate_issue_sql_records'])})",
-        f"- near-duplicate pairs at Jaccard >= "
-        f"{d['near_duplicate_threshold']}: **{d['near_duplicate_pairs']}**, "
-        f"of which **{d['near_duplicate_pairs_cross_dialect']}** span two "
-        f"different SQL dialects",
-        f"- near-duplicate clusters: **{d['near_duplicate_clusters']}**, "
-        f"containing {d['records_in_near_duplicate_clusters']} records "
-        f"({pct(d['records_in_near_duplicate_clusters'])})",
-        f"  - of these, **{d['fully_identical_clusters']}** are identical "
-        f"across every evaluated field "
-        f"({d['records_fully_identical']} records, "
-        f"{pct(d['records_fully_identical'])}) and are genuinely redundant",
-        f"  - the remaining **{d['shared_stem_variant_clusters']}** share a "
-        f"question stem but differ in `issue_sql` or `category`, which is a "
-        f"deliberate construction rather than a defect",
-        "",
-        "## How to read this",
-        "",
-        "The headline is that this benchmark is structurally sound. Schema "
-        "validation passes on every record, nothing is degenerate, and the "
-        "duplicate rate is low enough to be immaterial to a reported score.",
-        "",
-        "The distinction between an identical cluster and a shared-stem "
-        "variant is the part worth keeping. A naive text-similarity pass "
-        "flags both, which would overstate the problem; only the identical "
-        "clusters let a model bank the same answer twice.",
-        "",
-        "The one number worth carrying into any claim about generalisation is "
-        f"database reuse: {n} records are drawn from just "
-        f"{dist['distinct_db_ids']} databases, averaging "
-        f"{dist['items_per_db_mean']} items each. That is a property of the "
-        "benchmark's design, not an error, but it does mean schema-specific "
-        "familiarity is rewarded.",
-        "",
-        "Every number above is computed by `audit.py`; rerun it to reproduce.",
+        "", "## Findings", "",
+        f"- malformed JSON lines: **{s['malformed_lines']}**",
+        f"- schema issues: **{s['schema_issues']}**",
+        f"- degenerate records: **{s['degenerate_records']}**",
+        f"- exact duplicate text groups: "
+        f"**{d['exact_duplicate_text_groups']}** "
+        f"({d['exact_duplicate_text_records']} records, "
+        f"{r['exact_duplicate_text']}%)",
+        f"- exact duplicate answer groups: "
+        f"**{d['exact_duplicate_answer_groups']}** "
+        f"({d['exact_duplicate_answer_records']} records)",
+        f"- near-duplicate clusters at Jaccard >= "
+        f"{s['similarity_threshold']}: **{d['near_duplicate_clusters']}** "
+        f"({d['records_in_clusters']} records, {r['records_in_clusters']}%)",
+        f"  - **{d['fully_identical_clusters']}** identical across every "
+        f"evaluated field - {d['records_fully_identical']} records, "
+        f"**{r['fully_identical']}%** - genuinely redundant",
+        f"  - **{d['shared_stem_variant_clusters']}** share a text stem but "
+        f"differ elsewhere - deliberate construction, not a defect",
+        "", "## Method", "",
+        f"Similarity: {SHINGLE_SIZE}-word shingles, Jaccard, threshold "
+        f"{s['similarity_threshold']}. Search: **{s['similarity_method']}** "
+        f"over {s['candidate_pairs_examined']} candidate pairs.",
         "",
     ]
+    if s["similarity_method"] == "minhash-lsh":
+        lines += [
+            "LSH generates candidates only; every reported pair is verified "
+            "with the true Jaccard score, so similarity values mean the same "
+            "thing as under exact search. Recall is not guaranteed - a small "
+            "number of genuine near-duplicates may be missed, which makes "
+            "these counts a lower bound.", "",
+        ]
+    lines += ["Rerun `audit.py` to reproduce every number above.", ""]
     return "\n".join(lines)
+
+
+# --- compare ---------------------------------------------------------------
+
+def compare(args):
+    paths = []
+    for pattern in args.summaries:
+        paths.extend(sorted(glob.glob(pattern)))
+    if not paths:
+        sys.exit("error: no summary.json files matched")
+
+    rows = []
+    for p in paths:
+        s = json.loads(Path(p).read_text(encoding="utf-8"))
+        d, r = s["duplicates"], s["rates_pct"]
+        dist = s["distributions"]
+        rows.append({
+            "name": s["name"], "records": s["records"],
+            "schema": s["schema_issues"], "degenerate": s["degenerate_records"],
+            "identical": d["records_fully_identical"],
+            "identical_pct": r["fully_identical"],
+            "variant_clusters": d["shared_stem_variant_clusters"],
+            "groups": dist.get("distinct_groups", "-"),
+            "top_share": (f"{100 * dist['top_group_share']:.1f}%"
+                          if dist.get("top_group_share") is not None else "-"),
+            "method": s["similarity_method"],
+        })
+    rows.sort(key=lambda x: -x["identical_pct"])
+
+    out = [
+        "# Benchmark integrity comparison", "",
+        "Every column produced by the same `audit.py prep` pass. "
+        "\"Identical\" counts records duplicated across every evaluated "
+        "field; shared-stem variants are listed separately because they are "
+        "usually deliberate.", "",
+        "| Dataset | Records | Schema issues | Degenerate | Identical dupes |"
+        " Identical % | Variant clusters | Groups | Largest group |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for x in rows:
+        out.append(
+            f"| {x['name']} | {x['records']} | {x['schema']} | "
+            f"{x['degenerate']} | {x['identical']} | {x['identical_pct']}% | "
+            f"{x['variant_clusters']} | {x['groups']} | {x['top_share']} |")
+    out += ["", "## Search method per dataset", "",
+            "| Dataset | Method |", "|---|---|"]
+    out += [f"| {x['name']} | {x['method']} |" for x in rows]
+    out += ["", "MinHash-LSH rows are lower bounds: candidates are verified "
+            "exactly, but recall is not guaranteed.", ""]
+
+    text = "\n".join(out)
+    Path(args.out).write_text(text, encoding="utf-8")
+    print(text)
+    print(f"\nwrote {args.out}")
 
 
 def main():
@@ -395,10 +572,35 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="command", required=True)
-    pr = sub.add_parser("prep", help="validate, normalize and audit the export")
-    pr.add_argument("--data", required=True, help="path to the jsonl export")
-    pr.add_argument("--out-dir", default="prepared", help="output directory")
+
+    f = sub.add_parser("fetch", help="download a HF dataset split to jsonl")
+    f.add_argument("--dataset", required=True)
+    f.add_argument("--split", required=True)
+    f.add_argument("--config", default=None)
+    f.add_argument("--out", required=True)
+    f.set_defaults(func=fetch)
+
+    pr = sub.add_parser("prep", help="audit a jsonl export")
+    pr.add_argument("--data", required=True)
+    pr.add_argument("--out-dir", default="prepared")
+    pr.add_argument("--name", default=None, help="label used in reports")
+    pr.add_argument("--preset", default="generic", choices=sorted(PRESETS))
+    pr.add_argument("--text-field", default=None)
+    pr.add_argument("--answer-field", default=None)
+    pr.add_argument("--group-field", default=None)
+    pr.add_argument("--label-fields", default=None, help="comma-separated")
+    pr.add_argument("--threshold", type=float, default=NEAR_DUP_THRESHOLD)
+    pr.add_argument("--lsh-threshold", type=int, default=LSH_SWITCH_AT,
+                    help="record count above which MinHash-LSH is used")
+    pr.add_argument("--no-prepared", action="store_true",
+                    help="skip writing prepared.jsonl")
     pr.set_defaults(func=prep)
+
+    c = sub.add_parser("compare", help="build a table from several summaries")
+    c.add_argument("summaries", nargs="+", help="paths or globs")
+    c.add_argument("--out", default="COMPARISON.md")
+    c.set_defaults(func=compare)
+
     args = p.parse_args()
     args.func(args)
 

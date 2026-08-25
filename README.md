@@ -1,58 +1,90 @@
 # bird-critic-audit
 
-A reproducible integrity audit of [BIRD-CRITIC 1.0 (open)](https://huggingface.co/datasets/birdsql/bird-critic-1.0-open), the 600-item SQL debugging benchmark.
+A reproducible integrity audit for Hugging Face datasets, and the reports it produces for the benchmarks people quote most.
 
-Benchmarks get quoted long before anyone checks whether their items are distinct. This repo is the check: one dependency-free script that validates the schema, normalizes every record, and measures duplication, cross-dialect restatement, and database reuse.
+Benchmarks get cited long before anyone checks whether their items are distinct. This is the check: one dependency-free script that validates the schema, flags degenerate records, and measures how much of a dataset is genuinely redundant.
 
-**The result is that BIRD-CRITIC holds up.** That is the finding, and it is reported as-is rather than dressed up into a problem.
+**So far every benchmark measured has come out clean.** That is the finding, and it is reported as-is rather than dressed up into a scandal.
 
-## Findings
+## Results
 
-| Check | Result |
-|---|---|
-| Records | 600 |
-| Schema violations | 0 |
-| Degenerate records (empty query / `issue_sql` / `db_id`) | 0 |
-| Malformed JSON lines | 0 |
-| Fully identical duplicate pairs | **1** (2 records, 0.3%) |
-| Shared-stem variant clusters | 3 |
-| Near-duplicate pairs spanning two dialects | 0 |
-| Distinct databases | 15 (40 items each on average) |
+| Dataset | Records | Schema issues | Degenerate | Identical dupes | Identical % | Variant clusters | Groups | Largest group |
+|---|---|---|---|---|---|---|---|---|
+| BIRD-CRITIC 1.0 (open) | 600 | 0 | 0 | 2 | 0.33% | 3 | 15 | 13.8% |
+| Spider (train) | 7000 | 0 | 0 | 16 | 0.23% | 69 | 140 | 2.4% |
+| Spider (dev) | 1034 | 0 | 0 | 0 | 0.0% | 3 | 20 | 11.6% |
 
-The single genuine duplicate is `SQLServer_70` / `SQLServer_71` — same question, same `issue_sql`, same category, same database.
+Full table in [`COMPARISON.md`](COMPARISON.md); per-dataset reports under [`prepared/`](prepared/).
 
-The other three flagged clusters (`PostgreSQL_215/216`, `262/263`, `265/266`) share a question stem but differ in `issue_sql` or `category`. `PostgreSQL_215` and `216` ask the same thing under `Personalization` and `Efficiency` respectively. That is deliberate construction, not redundancy, and a plain text-similarity pass that lumps them in with the real duplicate overstates the problem by 4x.
+## The distinction that matters
 
-The number worth carrying forward is not duplication but concentration: 600 records drawn from 15 databases, the largest supplying 13.8% of all items. That rewards schema-specific familiarity and is worth stating whenever a BIRD-CRITIC score is used to argue for general SQL debugging ability.
+A naive text-similarity pass reports **77 duplicate clusters** in Spider's training split. Only **8** of them are real.
 
-Full output in [`prepared/REPORT.md`](prepared/REPORT.md) and [`prepared/summary.json`](prepared/summary.json).
+The other 69 share a question stem while differing in the reference SQL, the database, or both — one phrasing reused against different schemas, which is deliberate construction rather than redundancy. In BIRD-CRITIC the same pattern appears: 4 clusters flagged, 1 genuine. `PostgreSQL_215` and `PostgreSQL_216` ask an identical question, one filed under `Personalization` and one under `Efficiency`, with different `issue_sql`.
 
-## Reproducing
+Reporting the raw cluster count overstates the problem by roughly **9x** on Spider and **4x** on BIRD-CRITIC. `audit.py` separates the two and reports both numbers, because only records identical across every evaluated field let a model bank the same answer twice.
+
+The number worth carrying into any claim about generalisation is not duplication but concentration. BIRD-CRITIC draws 600 records from 15 databases, the largest supplying 13.8% of all items. Spider's training split is far more diverse at 140 databases and a 2.4% maximum. Both are design properties rather than errors, but they mean the two benchmarks reward schema-specific familiarity to very different degrees.
+
+## Does the fast path agree with the slow one?
+
+Above 3,000 records exact all-pairs comparison stops being practical, so the script switches to MinHash-LSH. That is a different algorithm, and swapping algorithms mid-table without checking is how comparisons quietly become meaningless.
+
+Run on Spider's dev split, where both methods are feasible:
+
+| Method | Candidate pairs examined | Pairs found | Clusters |
+|---|---|---|---|
+| exact all-pairs | 534,061 | 3 | 3 |
+| MinHash-LSH | 232 | 3 | 3 |
+
+Identical output from 0.04% of the work. LSH generates candidates only — every reported pair is then verified with its true Jaccard score, so similarity values mean the same thing under both methods.
+
+Reproduce it with `--lsh-threshold 0`, which forces LSH on a dataset small enough to check by brute force.
+
+## Usage
 
 ```bash
 pip install datasets
-python -c "from datasets import load_dataset; load_dataset('birdsql/bird-critic-1.0-open', split='open').to_json('bird-critic-open.jsonl')"
-python audit.py prep --data bird-critic-open.jsonl
+
+python audit.py fetch --dataset xlangai/spider --split train --out spider-train.jsonl
+python audit.py prep  --data spider-train.jsonl --preset spider --name "Spider (train)" --out-dir prepared/spider-train
+python audit.py compare "prepared/*/summary.json" --out COMPARISON.md
 ```
 
-Note the split is named `open`, not `train` — `split='train'` raises `ValueError: Unknown split "train"`.
+Any dataset works, not just the presets — point the field roles at the right columns:
 
-`audit.py` itself is pure standard library; `datasets` is needed only to pull the source data.
+```bash
+python audit.py prep --data mydata.jsonl \
+  --text-field question --answer-field answer --group-field source \
+  --label-fields difficulty,topic
+```
 
-## What `prep` does
+Three roles drive everything: `text` is the natural-language side, `answer` the reference solution, `group` the schema or source an item is drawn from. Presets exist for `bird-critic` and `spider`.
 
-1. **Loads** the jsonl export, recording any malformed lines rather than crashing.
-2. **Validates** all ten fields of every record against their expected types.
-3. **Flags** degenerate records that cannot support an evaluation.
-4. **Detects duplicates** three ways: exact on normalized `query`, exact on comment-stripped `issue_sql`, and near-duplicate by 3-word-shingle Jaccard at a 0.70 threshold, all-pairs.
-5. **Clusters** near-duplicate pairs with union-find, then splits those clusters into *fully identical* and *shared-stem variant*.
-6. **Writes** `prepared/prepared.jsonl` (normalized records with comparison keys attached), `prepared/summary.json`, and `prepared/REPORT.md`.
+For BIRD-CRITIC, note the split is named `open`, not `train` — `split='train'` raises `ValueError: Unknown split "train"`.
 
-## Method notes
+`audit.py` is pure standard library; `datasets` is needed only by `fetch`.
 
-The near-duplicate threshold (0.70) and shingle size (3) are constants at the top of `audit.py`. All-pairs comparison is O(n²), which is 180k comparisons at n=600 and runs in a couple of seconds; it would need rethinking above roughly 10k records.
+## What `prep` measures
 
-Similarity is computed over `query` only. `issue_sql` is compared exactly, after stripping comments and collapsing whitespace, because near-identical SQL is common and expected across independent problems and would produce noise rather than signal.
+1. **Schema** — infers the majority type of every field and flags records that deviate or omit it.
+2. **Degenerate records** — empty text, answer, or group fields.
+3. **Exact duplicates** — on normalized text, and separately on comment-stripped reference SQL.
+4. **Near-duplicates** — 3-word-shingle Jaccard at a 0.70 threshold, exact below 3,000 records and MinHash-LSH above.
+5. **Cluster classification** — union-find over near-duplicate pairs, then a split into *fully identical* and *shared-stem variant*.
+6. **Concentration** — distinct groups, mean items per group, largest group share.
+
+Outputs `summary.json` (machine-readable), `REPORT.md` (human-readable), and `prepared.jsonl` (normalized records with comparison keys attached; skip with `--no-prepared`).
+
+## Limitations
+
+LSH recall is not guaranteed, so counts on datasets above the switch threshold are **lower bounds**. The dev-split check above found no loss, but one clean result is not a proof. Every report states which method produced it.
+
+Similarity is computed over the text field only. Reference SQL is compared exactly, after stripping comments and collapsing whitespace, because near-identical SQL is common across genuinely independent problems and would produce noise rather than signal.
+
+**Cross-split contamination is not yet measured.** Overlap between a training split and its evaluation split is a more consequential problem than duplication within either one, and this tool does not currently look for it. That is the next thing to build.
+
+The 0.70 threshold and 3-word shingle size are constants at the top of `audit.py`, exposed as `--threshold`. They are defensible defaults, not tuned optima.
 
 ## License
 

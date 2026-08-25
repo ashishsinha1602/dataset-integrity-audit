@@ -1,0 +1,149 @@
+{
+  "name": "Spider (dev)",
+  "source": "spider-dev.jsonl",
+  "records": 1034,
+  "roles": {
+    "text": "question",
+    "answer": "query",
+    "group": "db_id",
+    "labels": []
+  },
+  "schema": {
+    "db_id": {
+      "type": "str",
+      "present": 1034,
+      "type_counts": {
+        "str": 1034
+      }
+    },
+    "query": {
+      "type": "str",
+      "present": 1034,
+      "type_counts": {
+        "str": 1034
+      }
+    },
+    "question": {
+      "type": "str",
+      "present": 1034,
+      "type_counts": {
+        "str": 1034
+      }
+    },
+    "query_toks": {
+      "type": "list",
+      "present": 1034,
+      "type_counts": {
+        "list": 1034
+      }
+    },
+    "query_toks_no_value": {
+      "type": "list",
+      "present": 1034,
+      "type_counts": {
+        "list": 1034
+      }
+    },
+    "question_toks": {
+      "type": "list",
+      "present": 1034,
+      "type_counts": {
+        "list": 1034
+      }
+    }
+  },
+  "malformed_lines": 0,
+  "schema_issues": 0,
+  "schema_issue_examples": [],
+  "degenerate_records": 0,
+  "degenerate_examples": [],
+  "distributions": {
+    "group_field": "db_id",
+    "distinct_groups": 20,
+    "items_per_group_mean": 51.7,
+    "top_group_share": 0.1161,
+    "groups": {
+      "world_1": 120,
+      "car_1": 92,
+      "cre_Doc_Template_Mgt": 84,
+      "dog_kennels": 82,
+      "flight_2": 80,
+      "student_transcripts_tracking": 78,
+      "wta_1": 62,
+      "tvshow": 62,
+      "network_1": 56,
+      "concert_singer": 45,
+      "pets_1": 42,
+      "poker_player": 40,
+      "orchestra": 40,
+      "employee_hire_evaluation": 38,
+      "course_teach": 30,
+      "singer": 30,
+      "museum_visit": 18,
+      "battle_death": 16,
+      "voter_1": 15,
+      "real_estate_properties": 4
+    }
+  },
+  "similarity_method": "exact-all-pairs",
+  "similarity_threshold": 0.7,
+  "candidate_pairs_examined": 534061,
+  "duplicates": {
+    "exact_duplicate_text_groups": 0,
+    "exact_duplicate_text_records": 0,
+    "exact_duplicate_answer_groups": 482,
+    "exact_duplicate_answer_records": 966,
+    "near_duplicate_pairs": 3,
+    "near_duplicate_clusters": 3,
+    "records_in_clusters": 6,
+    "fully_identical_clusters": 0,
+    "records_fully_identical": 0,
+    "shared_stem_variant_clusters": 3
+  },
+  "rates_pct": {
+    "exact_duplicate_text": 0.0,
+    "records_in_clusters": 0.58,
+    "fully_identical": 0.0
+  },
+  "fully_identical_detail": [],
+  "shared_stem_variant_detail": [
+    {
+      "members": [
+        "row_248",
+        "row_252"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_521",
+        "row_522"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_886",
+        "row_906"
+      ],
+      "size": 2
+    }
+  ],
+  "top_near_duplicate_pairs": [
+    {
+      "a": "row_886",
+      "b": "row_906",
+      "similarity": 0.8571
+    },
+    {
+      "a": "row_248",
+      "b": "row_252",
+      "similarity": 0.75
+    },
+    {
+      "a": "row_521",
+      "b": "row_522",
+      "similarity": 0.7143
+    }
+  ]
+}

@@ -1,0 +1,655 @@
+{
+  "name": "Spider (train)",
+  "source": "spider-train.jsonl",
+  "records": 7000,
+  "roles": {
+    "text": "question",
+    "answer": "query",
+    "group": "db_id",
+    "labels": []
+  },
+  "schema": {
+    "db_id": {
+      "type": "str",
+      "present": 7000,
+      "type_counts": {
+        "str": 7000
+      }
+    },
+    "query": {
+      "type": "str",
+      "present": 7000,
+      "type_counts": {
+        "str": 7000
+      }
+    },
+    "question": {
+      "type": "str",
+      "present": 7000,
+      "type_counts": {
+        "str": 7000
+      }
+    },
+    "query_toks": {
+      "type": "list",
+      "present": 7000,
+      "type_counts": {
+        "list": 7000
+      }
+    },
+    "query_toks_no_value": {
+      "type": "list",
+      "present": 7000,
+      "type_counts": {
+        "list": 7000
+      }
+    },
+    "question_toks": {
+      "type": "list",
+      "present": 7000,
+      "type_counts": {
+        "list": 7000
+      }
+    }
+  },
+  "malformed_lines": 0,
+  "schema_issues": 0,
+  "schema_issue_examples": [],
+  "degenerate_records": 0,
+  "degenerate_examples": [],
+  "distributions": {
+    "group_field": "db_id",
+    "distinct_groups": 140,
+    "items_per_group_mean": 50.0,
+    "top_group_share": 0.0243,
+    "groups": {
+      "college_2": 170,
+      "college_1": 164,
+      "hr_1": 124,
+      "store_1": 112,
+      "soccer_2": 106,
+      "bike_1": 104,
+      "music_1": 100,
+      "hospital_1": 100,
+      "music_2": 100,
+      "dorm_1": 100,
+      "allergy_1": 98,
+      "movie_1": 98,
+      "flight_1": 96,
+      "driving_school": 93,
+      "cre_Doc_Tracking_DB": 90,
+      "department_store": 88,
+      "customers_and_addresses": 88,
+      "activity_1": 88,
+      "network_2": 86,
+      "products_gen_characteristics": 86
+    }
+  },
+  "similarity_method": "minhash-lsh",
+  "similarity_threshold": 0.7,
+  "candidate_pairs_examined": 7008,
+  "duplicates": {
+    "exact_duplicate_text_groups": 33,
+    "exact_duplicate_text_records": 73,
+    "exact_duplicate_answer_groups": 2973,
+    "exact_duplicate_answer_records": 6030,
+    "near_duplicate_pairs": 99,
+    "near_duplicate_clusters": 77,
+    "records_in_clusters": 164,
+    "fully_identical_clusters": 8,
+    "records_fully_identical": 16,
+    "shared_stem_variant_clusters": 69
+  },
+  "rates_pct": {
+    "exact_duplicate_text": 1.04,
+    "records_in_clusters": 2.34,
+    "fully_identical": 0.23
+  },
+  "fully_identical_detail": [
+    {
+      "members": [
+        "row_1348",
+        "row_1420"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1698",
+        "row_1716"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2211",
+        "row_2212"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2340",
+        "row_2342"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2438",
+        "row_2439"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3414",
+        "row_3484"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3459",
+        "row_3485"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_4398",
+        "row_4399"
+      ],
+      "size": 2
+    }
+  ],
+  "shared_stem_variant_detail": [
+    {
+      "members": [
+        "row_26",
+        "row_27"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_60",
+        "row_4055",
+        "row_6734"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_276",
+        "row_1692"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_361",
+        "row_2106",
+        "row_4196"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_459",
+        "row_4029",
+        "row_4254",
+        "row_5684"
+      ],
+      "size": 4
+    },
+    {
+      "members": [
+        "row_500",
+        "row_5501"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_616",
+        "row_3795",
+        "row_6056"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_654",
+        "row_4413",
+        "row_6242"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_667",
+        "row_6385"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_668",
+        "row_1779",
+        "row_6386"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_691",
+        "row_5096"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_692",
+        "row_1574",
+        "row_5769"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_909",
+        "row_6897"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_917",
+        "row_6326"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1053",
+        "row_2533"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1373",
+        "row_3254"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1411",
+        "row_3218"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1650",
+        "row_6144"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1756",
+        "row_6147"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1802",
+        "row_1814"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1884",
+        "row_4860"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1885",
+        "row_4861"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2039",
+        "row_2690"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2040",
+        "row_2691"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2223",
+        "row_2225"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2271",
+        "row_2308"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2295",
+        "row_2319"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2338",
+        "row_2388"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2353",
+        "row_2355"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2420",
+        "row_2421"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2604",
+        "row_2605"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2854",
+        "row_6066"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2875",
+        "row_2877"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3008",
+        "row_5768",
+        "row_6057",
+        "row_6671"
+      ],
+      "size": 4
+    },
+    {
+      "members": [
+        "row_3205",
+        "row_3207"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3270",
+        "row_4676"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3309",
+        "row_3311"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3310",
+        "row_3312"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3337",
+        "row_4250"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3341",
+        "row_3342"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3413",
+        "row_3483"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3463",
+        "row_3525"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3499",
+        "row_3501"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3500",
+        "row_3502"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3768",
+        "row_4635"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3796",
+        "row_3797"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_3998",
+        "row_6244"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_4028",
+        "row_5444"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_4054",
+        "row_4056"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_4236",
+        "row_4237"
+      ],
+      "size": 2
+    }
+  ],
+  "top_near_duplicate_pairs": [
+    {
+      "a": "row_4028",
+      "b": "row_5444",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_361",
+      "b": "row_2106",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_3337",
+      "b": "row_4250",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1779",
+      "b": "row_6386",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_3998",
+      "b": "row_6244",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1574",
+      "b": "row_5769",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_276",
+      "b": "row_1692",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_2438",
+      "b": "row_2439",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1698",
+      "b": "row_1716",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_3459",
+      "b": "row_3485",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1884",
+      "b": "row_4860",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_691",
+      "b": "row_5096",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_3008",
+      "b": "row_5768",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1348",
+      "b": "row_1420",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_917",
+      "b": "row_6326",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_2039",
+      "b": "row_2690",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_459",
+      "b": "row_4029",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_3414",
+      "b": "row_3484",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_361",
+      "b": "row_4196",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_2040",
+      "b": "row_2691",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_668",
+      "b": "row_1779",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_2211",
+      "b": "row_2212",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_4398",
+      "b": "row_4399",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_4254",
+      "b": "row_5684",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_3008",
+      "b": "row_6671",
+      "similarity": 1.0
+    }
+  ]
+}

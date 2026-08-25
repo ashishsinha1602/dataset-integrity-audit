@@ -1,5 +1,8 @@
 bird-critic-open.jsonl
-prepared/prepared.jsonl
+spider-train.jsonl
+spider-dev.jsonl
+*.jsonl
+prepared/*/prepared.jsonl
 __pycache__/
 *.pyc
 .venv/
