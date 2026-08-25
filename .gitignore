@@ -1,0 +1,5 @@
+bird-critic-open.jsonl
+prepared/prepared.jsonl
+__pycache__/
+*.pyc
+.venv/
