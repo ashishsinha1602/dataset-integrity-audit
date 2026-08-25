@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="Naive duplicate detection overstates the problem: 77 flagged clusters versus 8 real in Spider train, and 6 versus 2 contaminated dev items.">
+<rect width="900" height="300" fill="#1a1a19"/>
+<g font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif">
+<text x="40" y="44" font-size="20" font-weight="600" fill="#ffffff">The obvious method overstates the problem</text>
+<text x="40" y="68" font-size="14" fill="#c3c2b7">Requiring the reference answer to match, not just the question</text>
+<circle cx="710" cy="42" r="6" fill="#d95926"/>
+<text x="722" y="47" font-size="13" fill="#c3c2b7">flagged</text>
+<circle cx="798" cy="42" r="6" fill="#3987e5"/>
+<text x="810" y="47" font-size="13" fill="#c3c2b7">real</text>
+<line x1="40" y1="100" x2="420" y2="100" stroke="#3a3a38" stroke-width="1"/>
+<text x="40" y="126" font-size="14" font-weight="600" fill="#ffffff">Duplicate clusters, Spider train</text>
+<path d="M40,146 H286.0 A4,4 0 0 1 290.0,150 V168 A4,4 0 0 1 286.0,172 H40 Z" fill="#d95926"/>
+<text x="300.0" y="165" font-size="16" font-weight="600" fill="#ffffff">77</text>
+<path d="M40,186 H61.97402597402598 A4,4 0 0 1 65.97402597402598,190 V208 A4,4 0 0 1 61.97402597402598,212 H40 Z" fill="#3987e5"/>
+<text x="75.97402597402598" y="205" font-size="16" font-weight="600" fill="#ffffff">8</text>
+<text x="40" y="256" font-size="13" fill="#c3c2b7">69 reuse a question against a different database</text>
+<text x="40" y="278" font-size="13" font-weight="600" fill="#ffffff">9x overstated</text>
+<line x1="490" y1="100" x2="870" y2="100" stroke="#3a3a38" stroke-width="1"/>
+<text x="490" y="126" font-size="14" font-weight="600" fill="#ffffff">Contaminated dev items, Spider</text>
+<path d="M490,146 H736.0 A4,4 0 0 1 740.0,150 V168 A4,4 0 0 1 736.0,172 H490 Z" fill="#d95926"/>
+<text x="750.0" y="165" font-size="16" font-weight="600" fill="#ffffff">6</text>
+<path d="M490,186 H569.3333333333334 A4,4 0 0 1 573.3333333333334,190 V208 A4,4 0 0 1 569.3333333333334,212 H490 Z" fill="#3987e5"/>
+<text x="583.3333333333334" y="205" font-size="16" font-weight="600" fill="#ffffff">2</text>
+<text x="490" y="256" font-size="13" fill="#c3c2b7">4 match on question text but resolve to different SQL</text>
+<text x="490" y="278" font-size="13" font-weight="600" fill="#ffffff">3x overstated</text>
+</g></svg>

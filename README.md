@@ -6,6 +6,30 @@ Benchmarks get cited long before anyone checks whether their items are distinct.
 
 **Six benchmarks measured so far. All six come out clean.** That is the finding, and it is reported as-is rather than dressed up into a scandal.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/overstatement-dark.svg">
+  <img alt="Naive duplicate detection flags 77 clusters in Spider train where only 8 are real, and 6 contaminated dev items where only 2 are real." src="assets/overstatement-light.svg">
+</picture>
+
+## Try it without installing anything
+
+A hosted version runs the same audit on any Hugging Face dataset id:
+**[Dataset Integrity Auditor](https://huggingface.co/spaces/Ashsinha1/dataset-integrity-auditor)**
+
+Source for the Space is in [`space/`](space/).
+
+## Audit your own dataset
+
+```bash
+git clone https://github.com/ashishsinha1602/bird-critic-audit && cd bird-critic-audit
+pip install datasets
+
+python audit.py fetch --dataset <your/dataset> --split train --out data.jsonl
+python audit.py prep --data data.jsonl --text-field question --answer-field answer
+```
+
+`prepared/REPORT.md` will tell you how much of it is redundant. No configuration beyond naming the two fields.
+
 ## Results
 
 | Dataset | Records | Schema issues | Degenerate | Identical dupes | Identical % | Variant clusters | Groups | Largest group |

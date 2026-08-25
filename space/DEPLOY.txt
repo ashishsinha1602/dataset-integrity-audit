@@ -1,0 +1,2 @@
+../audit.py must be copied alongside app.py when deploying.
+The Space needs audit.py in its own root; HF Spaces have no parent-directory imports.
