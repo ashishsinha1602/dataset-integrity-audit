@@ -6,3 +6,4 @@ prepared/*/prepared.jsonl
 __pycache__/
 *.pyc
 .venv/
+traction.csv
