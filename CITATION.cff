@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+title: "dataset-integrity-audit"
+message: "If you use this tool or its measurements, please cite it."
+type: software
+authors:
+  - given-names: Ashish
+    family-names: Sinha
+    email: sinha.ashish.4.u@gmail.com
+repository-code: "https://github.com/ashishsinha1602/dataset-integrity-audit"
+abstract: >-
+  A reproducible integrity audit for Hugging Face datasets. Validates schema,
+  flags degenerate records, and measures duplication three ways: exact matches
+  on the natural-language field, exact matches on the reference answer, and
+  near-duplicates by shingle Jaccard with MinHash-LSH above 3,000 records.
+  Near-duplicate clusters are separated into records identical across every
+  evaluated field and records that merely share a question stem, because
+  conflating the two overstates duplication roughly ninefold on Spider's
+  training split. Also measures cross-split contamination, where requiring the
+  reference answer to match alongside the question reduces the apparent
+  contamination rate threefold.
+keywords:
+  - benchmark
+  - data-quality
+  - contamination
+  - deduplication
+  - llm-evaluation
+license: MIT
