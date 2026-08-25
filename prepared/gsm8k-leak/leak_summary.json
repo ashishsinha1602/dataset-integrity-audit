@@ -1,0 +1,38 @@
+{
+  "a": {
+    "name": "GSM8K train",
+    "source": "gsm8k-train.jsonl",
+    "records": 7473,
+    "distinct_groups": null
+  },
+  "b": {
+    "name": "GSM8K test",
+    "source": "gsm8k-test.jsonl",
+    "records": 1319,
+    "distinct_groups": null
+  },
+  "roles": {
+    "text": "question",
+    "answer": "answer",
+    "group": null,
+    "labels": []
+  },
+  "similarity_method": "minhash-lsh",
+  "similarity_threshold": 0.7,
+  "candidate_pairs_examined": 5,
+  "shared_groups": null,
+  "shared_group_count": null,
+  "exact_text_matches": 0,
+  "exact_text_pct_of_b": 0.0,
+  "exact_answer_matches": 0,
+  "exact_answer_pct_of_b": 0.0,
+  "text_and_answer_matches": 0,
+  "text_and_answer_pct_of_b": 0.0,
+  "text_and_answer_examples": [],
+  "near_duplicate_pairs": 0,
+  "b_records_with_near_match": 0,
+  "b_records_with_near_match_pct": 0.0,
+  "exact_text_examples": [],
+  "exact_answer_examples": [],
+  "top_near_pairs": []
+}

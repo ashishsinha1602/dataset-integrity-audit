@@ -4,7 +4,7 @@ A reproducible integrity audit for Hugging Face datasets, and the reports it pro
 
 Benchmarks get cited long before anyone checks whether their items are distinct. This is the check: one dependency-free script that validates the schema, flags degenerate records, and measures how much of a dataset is genuinely redundant.
 
-**So far every benchmark measured has come out clean.** That is the finding, and it is reported as-is rather than dressed up into a scandal.
+**Six benchmarks measured so far. All six come out clean.** That is the finding, and it is reported as-is rather than dressed up into a scandal.
 
 ## Results
 
@@ -13,8 +13,11 @@ Benchmarks get cited long before anyone checks whether their items are distinct.
 | BIRD-CRITIC 1.0 (open) | 600 | 0 | 0 | 2 | 0.33% | 3 | 15 | 13.8% |
 | Spider (train) | 7000 | 0 | 0 | 16 | 0.23% | 69 | 140 | 2.4% |
 | Spider (dev) | 1034 | 0 | 0 | 0 | 0.0% | 3 | 20 | 11.6% |
+| GSM8K (train) | 7473 | 0 | 0 | 0 | 0.0% | 1 | – | – |
+| GSM8K (test) | 1319 | 0 | 0 | 0 | 0.0% | 0 | – | – |
+| HumanEval | 164 | 0 | 0 | 0 | 0.0% | 0 | – | – |
 
-Full table in [`COMPARISON.md`](COMPARISON.md); per-dataset reports under [`prepared/`](prepared/).
+Six datasets, 17,590 records, **18 genuinely duplicated records in total**. Full table in [`COMPARISON.md`](COMPARISON.md); per-dataset reports under [`prepared/`](prepared/).
 
 ## The distinction that matters
 
@@ -24,23 +27,26 @@ The other 69 share a question stem while differing in the reference SQL, the dat
 
 Reporting the raw cluster count overstates the problem by roughly **9x** on Spider and **4x** on BIRD-CRITIC. `audit.py` separates the two and reports both numbers, because only records identical across every evaluated field let a model bank the same answer twice.
 
+The same gap shows up again in cross-split contamination below: counting identical questions says 6 Spider dev items are contaminated, while additionally requiring the reference SQL to match says 2. Both measurements point one way — **the obvious implementation of a contamination check overstates the problem, and the correction is to require the answer to match, not just the question.**
+
 The number worth carrying into any claim about generalisation is not duplication but concentration. BIRD-CRITIC draws 600 records from 15 databases, the largest supplying 13.8% of all items. Spider's training split is far more diverse at 140 databases and a 2.4% maximum. Both are design properties rather than errors, but they mean the two benchmarks reward schema-specific familiarity to very different degrees.
 
 ## Cross-split contamination
 
 Overlap between a training split and the split used to score a model inflates that score directly, which makes it more consequential than duplication inside either split. `audit.py leak` measures it.
 
-Spider train (7,000) against Spider dev (1,034):
-
-| Check | Matches | % of dev |
+| Check | Spider train → dev | GSM8K train → test |
 |---|---|---|
-| Identical question | 6 | 0.58% |
-| Identical reference SQL | 8 | 0.77% |
-| **Both identical — answerable from memory** | **2** | **0.19%** |
-| Near-duplicate question (Jaccard ≥ 0.70) | 7 | 0.68% |
-| Shared `db_id` values | **0** | — |
+| Records compared | 7,000 → 1,034 | 7,473 → 1,319 |
+| Identical question | 6 (0.58%) | 0 |
+| Identical reference answer | 8 (0.77%) | 0 |
+| **Both identical — answerable from memory** | **2 (0.19%)** | **0** |
+| Near-duplicate question (Jaccard ≥ 0.70) | 7 (0.68%) | 0 |
+| Shared group values | 0 databases | – |
 
-**Spider's split separation holds.** The two splits share no databases at all, so an identical question across them is being asked of entirely different data.
+**GSM8K has zero measurable train/test overlap** — not one identical question, answer, or near-duplicate. Because that result came from LSH, which offers no recall guarantee, it was re-run under exact cross-product search over all 9,852,887 pairs: still zero, in 13 seconds. A zero from an approximate method is exactly where verification is worth the cost.
+
+**Both benchmarks' split separations hold.** Spider's two splits share no databases at all, so an identical question across them is being asked of entirely different data.
 
 The collisions are what you would expect once you look: every one is a degenerate row-count question landing on a coincidentally same-named table. *"What is the total number of airlines?"* appears in both, against `flight_2` and `flight_4`, and both reduce to `SELECT count(*) FROM AIRLINES`. Same for `SELECT count(*) FROM Documents` across `cre_Doc_Template_Mgt` and `cre_Docs_and_Epenses`.
 
