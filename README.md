@@ -1,4 +1,4 @@
-# bird-critic-audit
+# dataset-integrity-audit
 
 A reproducible integrity audit for Hugging Face datasets, and the reports it produces for the benchmarks people quote most.
 
@@ -21,7 +21,7 @@ Source for the Space is in [`space/`](space/).
 ## Audit your own dataset
 
 ```bash
-git clone https://github.com/ashishsinha1602/bird-critic-audit && cd bird-critic-audit
+git clone https://github.com/ashishsinha1602/dataset-integrity-audit && cd dataset-integrity-audit
 pip install datasets
 
 python audit.py fetch --dataset <your/dataset> --split train --out data.jsonl

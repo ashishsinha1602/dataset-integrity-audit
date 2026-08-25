@@ -192,8 +192,8 @@ with gr.Blocks(title="Dataset Integrity Auditor") as demo:
         "overstates duplication - by 9x on Spider's training split. Only the "
         "first kind lets a model bank the same answer twice.\n\n"
         "Code and full write-up: "
-        "[github.com/ashishsinha1602/bird-critic-audit]"
-        "(https://github.com/ashishsinha1602/bird-critic-audit)")
+        "[github.com/ashishsinha1602/dataset-integrity-audit]"
+        "(https://github.com/ashishsinha1602/dataset-integrity-audit)")
 
     with gr.Row():
         dataset_id = gr.Textbox(label="Dataset id", value="xlangai/spider",

@@ -19,4 +19,4 @@ records that merely **share a question stem**. Naive similarity lumps them
 together and overstates duplication — by 9x on Spider's training split.
 
 Six benchmarks audited so far, all clean. Code and write-up:
-https://github.com/ashishsinha1602/bird-critic-audit
+https://github.com/ashishsinha1602/dataset-integrity-audit

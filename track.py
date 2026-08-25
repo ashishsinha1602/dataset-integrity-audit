@@ -19,7 +19,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO = "ashishsinha1602/bird-critic-audit"
+REPO = "ashishsinha1602/dataset-integrity-audit"
 GH = r"C:\Program Files\GitHub CLI\gh.exe"
 CSV_PATH = Path(__file__).with_name("traction.csv")
 FIELDS = ["date", "stars", "forks", "watchers", "views_14d", "uniques_14d",
