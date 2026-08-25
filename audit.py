@@ -567,6 +567,246 @@ def compare(args):
     print(f"\nwrote {args.out}")
 
 
+# --- leak ------------------------------------------------------------------
+
+def cross_near_pairs(sigs_a, sigs_b, threshold, use_lsh):
+    """Near-duplicate pairs spanning two sets. Returns (pairs, candidates).
+
+    Under LSH both sets are bucketed together and only cross-set pairs are
+    kept, so one banding pass serves both directions.
+    """
+    if not use_lsh:
+        pairs = []
+        for i, sa in enumerate(sigs_a):
+            if not sa:
+                continue
+            for j, sb in enumerate(sigs_b):
+                score = jaccard(sa, sb)
+                if score >= threshold:
+                    pairs.append((i, j, score))
+        return pairs, len(sigs_a) * len(sigs_b)
+
+    perms = make_perms(MINHASH_PERMS)
+    n_a = len(sigs_a)
+    combined = list(sigs_a) + list(sigs_b)
+    signatures = {}
+    for idx, s in enumerate(combined):
+        sig = minhash_signature(s, perms)
+        if sig is not None:
+            signatures[idx] = sig
+
+    candidates = set()
+    for band in range(LSH_BANDS):
+        lo, hi = band * LSH_ROWS, (band + 1) * LSH_ROWS
+        buckets = defaultdict(list)
+        for idx, sig in signatures.items():
+            buckets[tuple(sig[lo:hi])].append(idx)
+        for members in buckets.values():
+            if len(members) < 2:
+                continue
+            left = [m for m in members if m < n_a][:200]
+            right = [m for m in members if m >= n_a][:200]
+            for x in left:
+                for y in right:
+                    candidates.add((x, y - n_a))
+
+    pairs = []
+    for i, j in candidates:
+        score = jaccard(sigs_a[i], sigs_b[j])
+        if score >= threshold:
+            pairs.append((i, j, score))
+    return pairs, len(candidates)
+
+
+def leak(args):
+    rec_a, _ = load(Path(args.a))
+    rec_b, _ = load(Path(args.b))
+    if not rec_a or not rec_b:
+        sys.exit("error: one of the inputs is empty")
+    roles = resolve_roles(args, rec_a + rec_b)
+    name_a = args.name_a or Path(args.a).stem
+    name_b = args.name_b or Path(args.b).stem
+    print(f"{name_a} ({len(rec_a)}) vs {name_b} ({len(rec_b)}) | "
+          f"text='{roles['text']}'")
+
+    text_a = defaultdict(list)
+    for i, r in enumerate(rec_a):
+        k = normalize_text(as_text(r.get(roles["text"])))
+        if k:
+            text_a[k].append(i)
+    exact_text = []
+    for j, r in enumerate(rec_b):
+        k = normalize_text(as_text(r.get(roles["text"])))
+        if k in text_a:
+            exact_text.append({"b": record_id(r, j),
+                               "a": [record_id(rec_a[i], i)
+                                     for i in text_a[k][:5]]})
+
+    exact_answer = []
+    if roles["answer"]:
+        ans_a = defaultdict(list)
+        for i, r in enumerate(rec_a):
+            k = normalize_sql(as_text(r.get(roles["answer"])))
+            if k:
+                ans_a[k].append(i)
+        for j, r in enumerate(rec_b):
+            k = normalize_sql(as_text(r.get(roles["answer"])))
+            if k in ans_a:
+                exact_answer.append({"b": record_id(r, j),
+                                     "a": [record_id(rec_a[i], i)
+                                           for i in ans_a[k][:5]]})
+
+    # The sharpest measure: a B record whose text AND reference answer both
+    # match the same A record is answerable from memory alone.
+    both_matches = []
+    if roles["answer"]:
+        pair_a = defaultdict(list)
+        for i, r in enumerate(rec_a):
+            kt = normalize_text(as_text(r.get(roles["text"])))
+            ka = normalize_sql(as_text(r.get(roles["answer"])))
+            if kt and ka:
+                pair_a[(kt, ka)].append(i)
+        for j, r in enumerate(rec_b):
+            kt = normalize_text(as_text(r.get(roles["text"])))
+            ka = normalize_sql(as_text(r.get(roles["answer"])))
+            if (kt, ka) in pair_a:
+                both_matches.append({
+                    "b": record_id(r, j), "text": as_text(r.get(roles["text"]))[:120],
+                    "a": [record_id(rec_a[i], i) for i in pair_a[(kt, ka)][:5]]})
+
+    groups_a = groups_b = shared_groups = None
+    if roles["group"]:
+        ga = {as_text(r.get(roles["group"])) for r in rec_a}
+        gb = {as_text(r.get(roles["group"])) for r in rec_b}
+        groups_a, groups_b = len(ga), len(gb)
+        shared_groups = sorted(ga & gb)
+
+    sigs_a = [shingles(as_text(r.get(roles["text"]))) for r in rec_a]
+    sigs_b = [shingles(as_text(r.get(roles["text"]))) for r in rec_b]
+    use_lsh = len(rec_a) * len(rec_b) > args.lsh_threshold ** 2
+    print(f"  {'MinHash-LSH' if use_lsh else 'exact cross product'} "
+          f"at threshold {args.threshold}...")
+    pairs, n_candidates = cross_near_pairs(sigs_a, sigs_b, args.threshold,
+                                           use_lsh)
+
+    b_matched = sorted({j for _, j, _ in pairs})
+    n_b = len(rec_b)
+
+    def pct(x):
+        return round(100.0 * x / n_b, 2) if n_b else 0.0
+
+    summary = {
+        "a": {"name": name_a, "source": args.a, "records": len(rec_a),
+              "distinct_groups": groups_a},
+        "b": {"name": name_b, "source": args.b, "records": n_b,
+              "distinct_groups": groups_b},
+        "roles": roles,
+        "similarity_method": "minhash-lsh" if use_lsh else "exact-cross-product",
+        "similarity_threshold": args.threshold,
+        "candidate_pairs_examined": n_candidates,
+        "shared_groups": shared_groups,
+        "shared_group_count": len(shared_groups) if shared_groups is not None else None,
+        "exact_text_matches": len(exact_text),
+        "exact_text_pct_of_b": pct(len(exact_text)),
+        "exact_answer_matches": len(exact_answer),
+        "exact_answer_pct_of_b": pct(len(exact_answer)),
+        "text_and_answer_matches": len(both_matches),
+        "text_and_answer_pct_of_b": pct(len(both_matches)),
+        "text_and_answer_examples": both_matches[:20],
+        "near_duplicate_pairs": len(pairs),
+        "b_records_with_near_match": len(b_matched),
+        "b_records_with_near_match_pct": pct(len(b_matched)),
+        "exact_text_examples": exact_text[:20],
+        "exact_answer_examples": exact_answer[:20],
+        "top_near_pairs": [
+            {"a": record_id(rec_a[i], i), "b": record_id(rec_b[j], j),
+             "similarity": round(s, 4)}
+            for i, j, s in sorted(pairs, key=lambda p: -p[2])[:25]],
+    }
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "leak_summary.json").write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    (out_dir / "LEAK_REPORT.md").write_text(render_leak(summary),
+                                            encoding="utf-8")
+
+    print(f"  exact text matches   {summary['exact_text_matches']} "
+          f"({summary['exact_text_pct_of_b']}% of {name_b})")
+    print(f"  exact answer matches {summary['exact_answer_matches']} "
+          f"({summary['exact_answer_pct_of_b']}%)")
+    print(f"  BOTH text+answer     {summary['text_and_answer_matches']} "
+          f"({summary['text_and_answer_pct_of_b']}%)")
+    print(f"  near matches         {summary['b_records_with_near_match']} "
+          f"({summary['b_records_with_near_match_pct']}%)")
+    if shared_groups is not None:
+        print(f"  shared {roles['group']} values: {len(shared_groups)}")
+    print(f"  wrote {out_dir}/LEAK_REPORT.md")
+
+
+def render_leak(s):
+    a, b = s["a"], s["b"]
+    lines = [
+        f"# Cross-split contamination: {a['name']} -> {b['name']}", "",
+        f"Does anything in **{b['name']}** already appear in "
+        f"**{a['name']}**? Overlap between a training split and the split "
+        f"used to score a model inflates that score directly, which makes it "
+        f"a more consequential defect than duplication inside either split.",
+        "", "## Inputs", "",
+        f"- {a['name']}: **{a['records']}** records",
+        f"- {b['name']}: **{b['records']}** records",
+    ]
+    if s["shared_group_count"] is not None:
+        lines.append(
+            f"- `{s['roles']['group']}` values: {a['distinct_groups']} vs "
+            f"{b['distinct_groups']}, **{s['shared_group_count']} shared**")
+    lines += [
+        "", "## Findings", "",
+        f"| Check | Matches | % of {b['name']} |", "|---|---|---|",
+        f"| Identical text | {s['exact_text_matches']} | "
+        f"{s['exact_text_pct_of_b']}% |",
+        f"| Identical reference answer | {s['exact_answer_matches']} | "
+        f"{s['exact_answer_pct_of_b']}% |",
+        f"| **Both identical (answerable from memory)** | "
+        f"**{s['text_and_answer_matches']}** | "
+        f"**{s['text_and_answer_pct_of_b']}%** |",
+        f"| Near-duplicate text (Jaccard >= {s['similarity_threshold']}) | "
+        f"{s['b_records_with_near_match']} | "
+        f"{s['b_records_with_near_match_pct']}% |",
+        "",
+    ]
+    if s["shared_group_count"] == 0:
+        lines += [
+            "The two splits share **no** "
+            f"`{s['roles']['group']}` values, so they are drawn from disjoint "
+            "sources by construction. Any text similarity found here is "
+            "phrasing reuse across different underlying data rather than the "
+            "same problem appearing twice - a much weaker form of overlap, "
+            "and often intentional.", "",
+        ]
+    elif s["shared_group_count"]:
+        lines += [
+            f"The splits share **{s['shared_group_count']}** "
+            f"`{s['roles']['group']}` values, so items can describe the same "
+            "underlying source. Text-level matches here deserve closer "
+            "reading than they would across disjoint sources.", "",
+        ]
+    lines += [
+        "## Method", "",
+        f"Search: **{s['similarity_method']}** over "
+        f"{s['candidate_pairs_examined']} candidate pairs. Exact checks "
+        "compare normalized text and comment-stripped reference answers.",
+        "",
+    ]
+    if s["similarity_method"] == "minhash-lsh":
+        lines += [
+            "Both splits are bucketed together and only cross-split pairs "
+            "kept; every candidate is verified with its true Jaccard score. "
+            "Recall is not guaranteed, so these counts are lower bounds.", "",
+        ]
+    return "\n".join(lines)
+
+
 def main():
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -595,6 +835,21 @@ def main():
     pr.add_argument("--no-prepared", action="store_true",
                     help="skip writing prepared.jsonl")
     pr.set_defaults(func=prep)
+
+    lk = sub.add_parser("leak", help="measure contamination between two splits")
+    lk.add_argument("--a", required=True, help="training / reference split")
+    lk.add_argument("--b", required=True, help="evaluation split")
+    lk.add_argument("--name-a", default=None)
+    lk.add_argument("--name-b", default=None)
+    lk.add_argument("--out-dir", default="prepared/leak")
+    lk.add_argument("--preset", default="generic", choices=sorted(PRESETS))
+    lk.add_argument("--text-field", default=None)
+    lk.add_argument("--answer-field", default=None)
+    lk.add_argument("--group-field", default=None)
+    lk.add_argument("--label-fields", default=None)
+    lk.add_argument("--threshold", type=float, default=NEAR_DUP_THRESHOLD)
+    lk.add_argument("--lsh-threshold", type=int, default=LSH_SWITCH_AT)
+    lk.set_defaults(func=leak)
 
     c = sub.add_parser("compare", help="build a table from several summaries")
     c.add_argument("summaries", nargs="+", help="paths or globs")

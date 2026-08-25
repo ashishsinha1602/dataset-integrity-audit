@@ -1,0 +1,187 @@
+{
+  "a": {
+    "name": "Spider train",
+    "source": "spider-train.jsonl",
+    "records": 7000,
+    "distinct_groups": 140
+  },
+  "b": {
+    "name": "Spider dev",
+    "source": "spider-dev.jsonl",
+    "records": 1034,
+    "distinct_groups": 20
+  },
+  "roles": {
+    "text": "question",
+    "answer": "query",
+    "group": "db_id",
+    "labels": []
+  },
+  "similarity_method": "exact-cross-product",
+  "similarity_threshold": 0.7,
+  "candidate_pairs_examined": 7238000,
+  "shared_groups": [],
+  "shared_group_count": 0,
+  "exact_text_matches": 6,
+  "exact_text_pct_of_b": 0.58,
+  "exact_answer_matches": 8,
+  "exact_answer_pct_of_b": 0.77,
+  "text_and_answer_matches": 2,
+  "text_and_answer_pct_of_b": 0.19,
+  "text_and_answer_examples": [
+    {
+      "b": "row_188",
+      "text": "What is the total number of airlines?",
+      "a": [
+        "row_6808"
+      ]
+    },
+    {
+      "b": "row_298",
+      "text": "Count the number of documents.",
+      "a": [
+        "row_6400"
+      ]
+    }
+  ],
+  "near_duplicate_pairs": 7,
+  "b_records_with_near_match": 7,
+  "b_records_with_near_match_pct": 0.68,
+  "exact_text_examples": [
+    {
+      "b": "row_188",
+      "a": [
+        "row_6808"
+      ]
+    },
+    {
+      "b": "row_191",
+      "a": [
+        "row_381"
+      ]
+    },
+    {
+      "b": "row_259",
+      "a": [
+        "row_6641"
+      ]
+    },
+    {
+      "b": "row_298",
+      "a": [
+        "row_6400"
+      ]
+    },
+    {
+      "b": "row_430",
+      "a": [
+        "row_1719"
+      ]
+    },
+    {
+      "b": "row_474",
+      "a": [
+        "row_1093"
+      ]
+    }
+  ],
+  "exact_answer_examples": [
+    {
+      "b": "row_187",
+      "a": [
+        "row_6807",
+        "row_6808"
+      ]
+    },
+    {
+      "b": "row_188",
+      "a": [
+        "row_6807",
+        "row_6808"
+      ]
+    },
+    {
+      "b": "row_259",
+      "a": [
+        "row_361",
+        "row_362",
+        "row_3247",
+        "row_3248"
+      ]
+    },
+    {
+      "b": "row_260",
+      "a": [
+        "row_361",
+        "row_362",
+        "row_3247",
+        "row_3248"
+      ]
+    },
+    {
+      "b": "row_297",
+      "a": [
+        "row_6399",
+        "row_6400"
+      ]
+    },
+    {
+      "b": "row_298",
+      "a": [
+        "row_6399",
+        "row_6400"
+      ]
+    },
+    {
+      "b": "row_509",
+      "a": [
+        "row_3768",
+        "row_3769"
+      ]
+    },
+    {
+      "b": "row_510",
+      "a": [
+        "row_3768",
+        "row_3769"
+      ]
+    }
+  ],
+  "top_near_pairs": [
+    {
+      "a": "row_381",
+      "b": "row_191",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1093",
+      "b": "row_474",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1719",
+      "b": "row_430",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_6400",
+      "b": "row_298",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_6641",
+      "b": "row_259",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_6808",
+      "b": "row_188",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_2296",
+      "b": "row_682",
+      "similarity": 0.7
+    }
+  ]
+}

@@ -26,6 +26,28 @@ Reporting the raw cluster count overstates the problem by roughly **9x** on Spid
 
 The number worth carrying into any claim about generalisation is not duplication but concentration. BIRD-CRITIC draws 600 records from 15 databases, the largest supplying 13.8% of all items. Spider's training split is far more diverse at 140 databases and a 2.4% maximum. Both are design properties rather than errors, but they mean the two benchmarks reward schema-specific familiarity to very different degrees.
 
+## Cross-split contamination
+
+Overlap between a training split and the split used to score a model inflates that score directly, which makes it more consequential than duplication inside either split. `audit.py leak` measures it.
+
+Spider train (7,000) against Spider dev (1,034):
+
+| Check | Matches | % of dev |
+|---|---|---|
+| Identical question | 6 | 0.58% |
+| Identical reference SQL | 8 | 0.77% |
+| **Both identical — answerable from memory** | **2** | **0.19%** |
+| Near-duplicate question (Jaccard ≥ 0.70) | 7 | 0.68% |
+| Shared `db_id` values | **0** | — |
+
+**Spider's split separation holds.** The two splits share no databases at all, so an identical question across them is being asked of entirely different data.
+
+The collisions are what you would expect once you look: every one is a degenerate row-count question landing on a coincidentally same-named table. *"What is the total number of airlines?"* appears in both, against `flight_2` and `flight_4`, and both reduce to `SELECT count(*) FROM AIRLINES`. Same for `SELECT count(*) FROM Documents` across `cre_Doc_Template_Mgt` and `cre_Docs_and_Epenses`.
+
+Two dev items out of 1,034 could be answered from memorized training data. Both are trivial counts. That is not contamination worth adjusting a score for — but it is worth having measured rather than assumed.
+
+Reporting only the "identical question" row would have put the number at 6 and the framing at *three times worse than it is*. Requiring the reference answer to match too is what makes the metric mean anything.
+
 ## Does the fast path agree with the slow one?
 
 Above 3,000 records exact all-pairs comparison stops being practical, so the script switches to MinHash-LSH. That is a different algorithm, and swapping algorithms mid-table without checking is how comparisons quietly become meaningless.
@@ -49,6 +71,8 @@ pip install datasets
 python audit.py fetch --dataset xlangai/spider --split train --out spider-train.jsonl
 python audit.py prep  --data spider-train.jsonl --preset spider --name "Spider (train)" --out-dir prepared/spider-train
 python audit.py compare "prepared/*/summary.json" --out COMPARISON.md
+
+python audit.py leak --a spider-train.jsonl --b spider-dev.jsonl --preset spider   --name-a "Spider train" --name-b "Spider dev" --out-dir prepared/spider-leak
 ```
 
 Any dataset works, not just the presets — point the field roles at the right columns:
@@ -74,6 +98,8 @@ For BIRD-CRITIC, note the split is named `open`, not `train` — `split='train'`
 5. **Cluster classification** — union-find over near-duplicate pairs, then a split into *fully identical* and *shared-stem variant*.
 6. **Concentration** — distinct groups, mean items per group, largest group share.
 
+`leak` additionally measures, for two splits: identical text, identical reference answers, records where **both** match the same source record, near-duplicate text across splits, and whether the splits share any group values at all.
+
 Outputs `summary.json` (machine-readable), `REPORT.md` (human-readable), and `prepared.jsonl` (normalized records with comparison keys attached; skip with `--no-prepared`).
 
 ## Limitations
@@ -82,7 +108,7 @@ LSH recall is not guaranteed, so counts on datasets above the switch threshold a
 
 Similarity is computed over the text field only. Reference SQL is compared exactly, after stripping comments and collapsing whitespace, because near-identical SQL is common across genuinely independent problems and would produce noise rather than signal.
 
-**Cross-split contamination is not yet measured.** Overlap between a training split and its evaluation split is a more consequential problem than duplication within either one, and this tool does not currently look for it. That is the next thing to build.
+Cross-split contamination is measured only between the two splits you pass to `leak`. It says nothing about overlap with a model's pretraining corpus, which is the larger and much harder contamination question.
 
 The 0.70 threshold and 3-word shingle size are constants at the top of `audit.py`, exposed as `--threshold`. They are defensible defaults, not tuned optima.
 
