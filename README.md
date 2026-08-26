@@ -4,7 +4,7 @@ A reproducible integrity audit for Hugging Face datasets, and the reports it pro
 
 Benchmarks get cited long before anyone checks whether their items are distinct. This is the check: one dependency-free script that validates the schema, flags degenerate records, and measures how much of a dataset is genuinely redundant.
 
-**Six benchmarks measured so far. All six come out clean.** That is the finding, and it is reported as-is rather than dressed up into a scandal.
+**Seven datasets measured. The six human-authored benchmarks are clean.** The one synthetic dataset still carries the fingerprint of the filter used to build it — visible in its similarity curve, and invisible to any audit that fixes the threshold at a single value.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/overstatement-dark.svg">
