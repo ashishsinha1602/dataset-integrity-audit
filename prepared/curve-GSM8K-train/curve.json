@@ -1,0 +1,40 @@
+{
+  "name": "GSM8K (train)",
+  "records": 7473,
+  "roles": {
+    "text": "question",
+    "answer": "answer",
+    "group": null,
+    "labels": []
+  },
+  "method": "minhash-lsh",
+  "curve": [
+    {
+      "threshold": 0.7,
+      "clusters": 1,
+      "pairs": 1,
+      "per_1k_records": 0.134
+    },
+    {
+      "threshold": 0.6,
+      "clusters": 3,
+      "pairs": 3,
+      "per_1k_records": 0.401,
+      "jump_vs_previous": 2.99
+    },
+    {
+      "threshold": 0.5,
+      "clusters": 10,
+      "pairs": 10,
+      "per_1k_records": 1.338,
+      "jump_vs_previous": 3.34
+    },
+    {
+      "threshold": 0.4,
+      "clusters": 25,
+      "pairs": 25,
+      "per_1k_records": 3.345,
+      "jump_vs_previous": 2.5
+    }
+  ]
+}

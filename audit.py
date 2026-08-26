@@ -807,6 +807,56 @@ def render_leak(s):
     return "\n".join(lines)
 
 
+
+# --- curve -----------------------------------------------------------------
+
+def curve(args):
+    """Near-duplicate density across a sweep of similarity thresholds.
+
+    The shape of this curve distinguishes how a dataset was built. Human-authored
+    sets decay smoothly. A set filtered by a similarity threshold at generation
+    time carries a discontinuity at that threshold - the filter is visible in the
+    data long after the fact.
+    """
+    records, _ = load(Path(args.data))
+    if not records:
+        sys.exit(f"error: no records in {args.data}")
+    roles = resolve_roles(args, records)
+    name = args.name or Path(args.data).stem
+    n = len(records)
+
+    sigs = [shingles(as_text(r.get(roles["text"]))) for r in records]
+    use_lsh = n > args.lsh_threshold
+    thresholds = [float(t) for t in args.thresholds.split(",")]
+
+    print(f"{name}: {n} records | {'MinHash-LSH' if use_lsh else 'exact'}")
+    rows = []
+    for t in sorted(thresholds, reverse=True):
+        if use_lsh:
+            pairs, _ = lsh_pairs(sigs, t, make_perms(MINHASH_PERMS))
+        else:
+            pairs = all_pairs(sigs, t)
+        clusters = connected_components(pairs, n)
+        per_k = round(1000.0 * len(clusters) / n, 3)
+        rows.append({"threshold": t, "clusters": len(clusters),
+                     "pairs": len(pairs), "per_1k_records": per_k})
+        print(f"  >={t}: {len(clusters):>5} clusters ({per_k} per 1k)")
+
+    # The jump between adjacent steps is what exposes a generation-time filter.
+    for i in range(1, len(rows)):
+        prev, cur = rows[i - 1]["per_1k_records"], rows[i]["per_1k_records"]
+        rows[i]["jump_vs_previous"] = (round(cur / prev, 2) if prev else None)
+
+    out = {"name": name, "records": n, "roles": roles,
+           "method": "minhash-lsh" if use_lsh else "exact-all-pairs",
+           "curve": rows}
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "curve.json").write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"  wrote {out_dir}/curve.json")
+
+
 def main():
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -850,6 +900,19 @@ def main():
     lk.add_argument("--threshold", type=float, default=NEAR_DUP_THRESHOLD)
     lk.add_argument("--lsh-threshold", type=int, default=LSH_SWITCH_AT)
     lk.set_defaults(func=leak)
+
+    cv = sub.add_parser("curve", help="near-duplicate density vs threshold")
+    cv.add_argument("--data", required=True)
+    cv.add_argument("--out-dir", default="prepared/curve")
+    cv.add_argument("--name", default=None)
+    cv.add_argument("--preset", default="generic", choices=sorted(PRESETS))
+    cv.add_argument("--text-field", default=None)
+    cv.add_argument("--answer-field", default=None)
+    cv.add_argument("--group-field", default=None)
+    cv.add_argument("--label-fields", default=None)
+    cv.add_argument("--thresholds", default="0.7,0.6,0.5,0.4,0.3")
+    cv.add_argument("--lsh-threshold", type=int, default=LSH_SWITCH_AT)
+    cv.set_defaults(func=curve)
 
     c = sub.add_parser("compare", help="build a table from several summaries")
     c.add_argument("summaries", nargs="+", help="paths or globs")

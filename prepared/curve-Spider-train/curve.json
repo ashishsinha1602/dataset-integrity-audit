@@ -1,0 +1,40 @@
+{
+  "name": "Spider (train)",
+  "records": 7000,
+  "roles": {
+    "text": "question",
+    "answer": "query",
+    "group": null,
+    "labels": []
+  },
+  "method": "minhash-lsh",
+  "curve": [
+    {
+      "threshold": 0.7,
+      "clusters": 77,
+      "pairs": 99,
+      "per_1k_records": 11.0
+    },
+    {
+      "threshold": 0.6,
+      "clusters": 144,
+      "pairs": 207,
+      "per_1k_records": 20.571,
+      "jump_vs_previous": 1.87
+    },
+    {
+      "threshold": 0.5,
+      "clusters": 245,
+      "pairs": 1441,
+      "per_1k_records": 35.0,
+      "jump_vs_previous": 1.7
+    },
+    {
+      "threshold": 0.4,
+      "clusters": 369,
+      "pairs": 2338,
+      "per_1k_records": 52.714,
+      "jump_vs_previous": 1.51
+    }
+  ]
+}

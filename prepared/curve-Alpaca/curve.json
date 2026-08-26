@@ -1,0 +1,40 @@
+{
+  "name": "Alpaca",
+  "records": 52002,
+  "roles": {
+    "text": "instruction",
+    "answer": "output",
+    "group": null,
+    "labels": []
+  },
+  "method": "minhash-lsh",
+  "curve": [
+    {
+      "threshold": 0.7,
+      "clusters": 0,
+      "pairs": 0,
+      "per_1k_records": 0.0
+    },
+    {
+      "threshold": 0.6,
+      "clusters": 1,
+      "pairs": 1,
+      "per_1k_records": 0.019,
+      "jump_vs_previous": null
+    },
+    {
+      "threshold": 0.5,
+      "clusters": 27,
+      "pairs": 34,
+      "per_1k_records": 0.519,
+      "jump_vs_previous": 27.32
+    },
+    {
+      "threshold": 0.4,
+      "clusters": 576,
+      "pairs": 1030,
+      "per_1k_records": 11.076,
+      "jump_vs_previous": 21.34
+    }
+  ]
+}

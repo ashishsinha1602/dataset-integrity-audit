@@ -55,6 +55,30 @@ The same gap shows up again in cross-split contamination below: counting identic
 
 The number worth carrying into any claim about generalisation is not duplication but concentration. BIRD-CRITIC draws 600 records from 15 databases, the largest supplying 13.8% of all items. Spider's training split is far more diverse at 140 databases and a 2.4% maximum. Both are design properties rather than errors, but they mean the two benchmarks reward schema-specific familiarity to very different degrees.
 
+## You can see the dedup filter in synthetic data
+
+`audit.py curve` sweeps the similarity threshold instead of fixing it at one value. The shape that comes back says something about how a dataset was built.
+
+Near-duplicate clusters per 1,000 records:
+
+| Threshold | Spider (human) | GSM8K (human) | Alpaca (model-generated) |
+|---|---|---|---|
+| ≥0.7 | 11.00 | 0.13 | **0.00** |
+| ≥0.6 | 20.57 | 0.40 | **0.02** |
+| ≥0.5 | 35.00 | 1.34 | **0.52** |
+| ≥0.4 | 52.71 | 3.35 | **11.08** |
+| **0.5 → 0.4 jump** | 1.5x | 2.5x | **21.3x** |
+
+Human-authored datasets decay smoothly — roughly 1.5x to 2.5x per threshold step. Alpaca is empty above 0.6 and then jumps **21x** in a single step.
+
+That discontinuity is not a property of the content. It is the ROUGE-L filter Alpaca's generation pipeline applied when creating instructions, still visible in the finished dataset long after the fact. The filter worked: there is not one exact duplicate instruction in 52,002 records, independently verified. But it left a fingerprint.
+
+This is worth knowing for two reasons. Deduplicating a synthetic dataset at a threshold above its generation filter is a no-op that will report zero and look like a clean bill of health. And the curve is a cheap way to tell whether a dataset you have been handed was filtered at generation time, and roughly where.
+
+Alpaca also carries **28 degenerate records** with empty outputs.
+
+Reproduce with `python audit.py curve --data alpaca.jsonl --text-field instruction --answer-field output`.
+
 ## Cross-split contamination
 
 Overlap between a training split and the split used to score a model inflates that score directly, which makes it more consequential than duplication inside either split. `audit.py leak` measures it.

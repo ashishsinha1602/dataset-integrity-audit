@@ -1,0 +1,211 @@
+{
+  "name": "Alpaca",
+  "source": "alpaca.jsonl",
+  "records": 52002,
+  "roles": {
+    "text": "instruction",
+    "answer": "output",
+    "group": null,
+    "labels": []
+  },
+  "schema": {
+    "instruction": {
+      "type": "str",
+      "present": 52002,
+      "type_counts": {
+        "str": 52002
+      }
+    },
+    "input": {
+      "type": "str",
+      "present": 52002,
+      "type_counts": {
+        "str": 52002
+      }
+    },
+    "output": {
+      "type": "str",
+      "present": 52002,
+      "type_counts": {
+        "str": 52002
+      }
+    },
+    "text": {
+      "type": "str",
+      "present": 52002,
+      "type_counts": {
+        "str": 52002
+      }
+    }
+  },
+  "malformed_lines": 0,
+  "schema_issues": 0,
+  "schema_issue_examples": [],
+  "degenerate_records": 28,
+  "degenerate_examples": [
+    {
+      "index": 284,
+      "id": "row_284",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 1223,
+      "id": "row_1223",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 1347,
+      "id": "row_1347",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 1736,
+      "id": "row_1736",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 7723,
+      "id": "row_7723",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 9038,
+      "id": "row_9038",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 11263,
+      "id": "row_11263",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 11355,
+      "id": "row_11355",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 11471,
+      "id": "row_11471",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 14634,
+      "id": "row_14634",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 15015,
+      "id": "row_15015",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 23488,
+      "id": "row_23488",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 24322,
+      "id": "row_24322",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 24449,
+      "id": "row_24449",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 24541,
+      "id": "row_24541",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 25034,
+      "id": "row_25034",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 28250,
+      "id": "row_28250",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 30605,
+      "id": "row_30605",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 31653,
+      "id": "row_31653",
+      "reasons": [
+        "empty_answer"
+      ]
+    },
+    {
+      "index": 32425,
+      "id": "row_32425",
+      "reasons": [
+        "empty_answer"
+      ]
+    }
+  ],
+  "distributions": {},
+  "similarity_method": "minhash-lsh",
+  "similarity_threshold": 0.7,
+  "candidate_pairs_examined": 30779,
+  "duplicates": {
+    "exact_duplicate_text_groups": 0,
+    "exact_duplicate_text_records": 0,
+    "exact_duplicate_answer_groups": 383,
+    "exact_duplicate_answer_records": 1603,
+    "near_duplicate_pairs": 0,
+    "near_duplicate_clusters": 0,
+    "records_in_clusters": 0,
+    "fully_identical_clusters": 0,
+    "records_fully_identical": 0,
+    "shared_stem_variant_clusters": 0
+  },
+  "rates_pct": {
+    "exact_duplicate_text": 0.0,
+    "records_in_clusters": 0.0,
+    "fully_identical": 0.0
+  },
+  "fully_identical_detail": [],
+  "shared_stem_variant_detail": [],
+  "top_near_duplicate_pairs": []
+}
