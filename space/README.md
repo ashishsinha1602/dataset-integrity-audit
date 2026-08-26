@@ -8,6 +8,18 @@ sdk_version: 6.22.0
 app_file: app.py
 pinned: false
 license: mit
+datasets:
+  - xlangai/spider
+  - openai/gsm8k
+  - openai/openai_humaneval
+  - birdsql/bird-critic-1.0-open
+tags:
+  - data-quality
+  - benchmark
+  - contamination
+  - deduplication
+  - evaluation
+short_description: Audit any HF dataset for duplicates and leakage
 ---
 
 # Dataset Integrity Auditor
