@@ -1,0 +1,320 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+
+\title{Redundancy Is Not Duplication: Integrity Audits of Seven\\
+Benchmark and Instruction Datasets}
+
+\author{Ashish Sinha\\
+\texttt{sinha.ashish.4.u@gmail.com}}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Benchmark datasets are cited far more often than they are inspected. We audit
+seven widely used datasets---Spider (train and dev), GSM8K (train and test),
+HumanEval, BIRD-CRITIC 1.0, and Alpaca---for schema violations, degenerate
+records, within-split duplication, and cross-split contamination, using a
+single dependency-free procedure whose every number is reproducible.
+
+We report two findings that bear on how such audits should be conducted. First,
+the standard practice of clustering items by text similarity systematically
+overcounts redundancy. In Spider's training split a similarity pass flags 77
+duplicate clusters, but only 8 contain records identical across every evaluated
+field; the remaining 69 reuse a question stem against a different database or
+reference query, which is deliberate construction rather than redundancy. The
+naive count overstates duplication by roughly $9\times$. The same pattern
+appears in cross-split contamination: counting identical questions marks 6
+Spider development items as contaminated, while additionally requiring the
+reference SQL to match marks 2.
+
+Second, measuring near-duplicate density across a sweep of similarity
+thresholds, rather than at a single fixed threshold, exposes structure that a
+point measurement hides. Human-authored datasets decay smoothly, gaining
+$1.5\times$ to $2.5\times$ more clusters per threshold step. Alpaca is
+essentially empty above $0.6$ and then gains $21.3\times$ in a single step. We
+argue this discontinuity is a residue of the similarity filter applied during
+Alpaca's generation, and that it has a direct practical consequence:
+deduplicating a synthetic corpus at a threshold above its generation-time
+filter returns zero and is mistaken for a clean result.
+
+Code, per-dataset reports, and an interactive demonstration are available at
+\url{https://github.com/ashishsinha1602/dataset-integrity-audit}.
+\end{abstract}
+
+\section{Introduction}
+
+A benchmark score is only as meaningful as the distinctness of the items it is
+computed over. Duplicate items inflate scores by letting a model bank the same
+answer twice; overlap between a training split and an evaluation split inflates
+them more directly still. Both are routinely assumed away.
+
+The obvious way to check is to embed or shingle the natural-language field,
+compute pairwise similarity, and count clusters above a threshold. We show that
+this procedure, applied without qualification, is wrong in a specific and
+correctable way, and that the correction changes the reported numbers by nearly
+an order of magnitude.
+
+Our contributions are:
+
+\begin{enumerate}
+\item A distinction between records that are \emph{identical across every
+evaluated field} and records that merely \emph{share a text stem}, with
+measurements showing the two are conflated by default and differ by $9\times$
+on Spider and $4\times$ on BIRD-CRITIC.
+
+\item The same correction applied to cross-split contamination: requiring the
+reference answer to match, not only the question, reduces the apparent
+contamination rate on Spider by $3\times$.
+
+\item A threshold-sweep measurement (the \emph{duplicate curve}) that
+distinguishes human-authored from filter-generated corpora, and reveals a
+$21.3\times$ discontinuity in Alpaca consistent with a generation-time
+similarity filter.
+
+\item Audits of seven datasets, released with code that reproduces every
+number.
+\end{enumerate}
+
+\section{Method}
+
+\subsection{Field roles}
+
+Datasets disagree on column names, sometimes inverting them: Spider's
+\texttt{query} field holds SQL and \texttt{question} holds natural language,
+which is the exact reverse of BIRD-CRITIC. We therefore parameterise every
+measurement over three roles: \textbf{text} (the natural-language side),
+\textbf{answer} (the reference solution), and \textbf{group} (the schema or
+source an item is drawn from).
+
+\subsection{Similarity}
+
+Text is lowercased and whitespace-collapsed, then represented as the set of
+$3$-word shingles. Similarity between items $i$ and $j$ is the Jaccard
+coefficient $J(S_i, S_j) = |S_i \cap S_j| / |S_i \cup S_j|$. Reference answers
+are compared exactly after stripping comments and collapsing whitespace;
+near-identical SQL is common across genuinely independent problems and
+contributes noise rather than signal.
+
+Below $3{,}000$ records we compute all pairs exactly. Above it we use
+MinHash-LSH ($128$ permutations, $32$ bands of $4$ rows) for candidate
+generation only, and verify every candidate with its true Jaccard score, so
+similarity values carry identical meaning under both paths. Shingles are hashed
+with CRC-32 rather than Python's built-in \texttt{hash}, which is randomised
+per process and would make bucketing irreproducible.
+
+\subsection{Identical records versus shared stems}
+
+Pairs above threshold are joined into clusters by union-find. Each cluster is
+then classified: a cluster is \textbf{fully identical} if all members agree on
+every evaluated field (text, answer, group, and any label fields), and a
+\textbf{shared-stem variant} otherwise. Only the former is redundancy in the
+sense that matters for scoring.
+
+\subsection{Cross-split contamination}
+
+For a training split $A$ and evaluation split $B$ we report four quantities:
+items of $B$ whose text matches an item of $A$ exactly; items whose reference
+answer matches; items where \emph{both} match the same record of $A$; and items
+with a near-duplicate above threshold. We also report whether $A$ and $B$ share
+any group values at all, since disjoint sources bound how much a text match can
+mean.
+
+\section{Results}
+
+\subsection{Per-dataset audit}
+
+Table~\ref{tab:main} reports the seven datasets. No dataset exhibits a single
+schema violation. Alpaca carries 28 records with empty outputs; no other
+dataset contains a degenerate record.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Dataset & Records & Schema & Degen. & Clusters & Identical & Variant \\
+\midrule
+Spider (train)        & 7{,}000  & 0 & 0  & 77 & 8 (16 rec., 0.23\%) & 69 \\
+Spider (dev)          & 1{,}034  & 0 & 0  & 3  & 0 & 3 \\
+GSM8K (train)         & 7{,}473  & 0 & 0  & 1  & 0 & 1 \\
+GSM8K (test)          & 1{,}319  & 0 & 0  & 0  & 0 & 0 \\
+HumanEval             & 164      & 0 & 0  & 0  & 0 & 0 \\
+BIRD-CRITIC 1.0       & 600      & 0 & 0  & 4  & 1 (2 rec., 0.33\%)  & 3 \\
+Alpaca                & 52{,}002 & 0 & 28 & 0  & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Integrity audit at Jaccard $\geq 0.70$. ``Identical'' counts clusters
+whose members agree on every evaluated field; ``Variant'' counts clusters
+sharing only a text stem.}
+\label{tab:main}
+\end{table}
+
+The gap between the \emph{Clusters} and \emph{Identical} columns is the
+finding. Spider's training split yields 77 clusters, of which 8 are genuine---a
+$9.6\times$ overstatement. BIRD-CRITIC yields 4, of which 1 is genuine. In
+BIRD-CRITIC the mechanism is explicit: instances \texttt{PostgreSQL\_215} and
+\texttt{PostgreSQL\_216} pose an identical question filed under different
+categories (\emph{Personalization} and \emph{Efficiency}) with different
+reference SQL. A deduplication pass keyed on question text alone would discard
+one of a deliberately constructed pair.
+
+\subsection{Cross-split contamination}
+
+Table~\ref{tab:leak} reports overlap between training and evaluation splits.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Check & Spider train $\to$ dev & GSM8K train $\to$ test \\
+\midrule
+Records compared              & 7{,}000 $\to$ 1{,}034 & 7{,}473 $\to$ 1{,}319 \\
+Identical question            & 6 (0.58\%) & 0 \\
+Identical reference answer    & 8 (0.77\%) & 0 \\
+\textbf{Both identical}       & \textbf{2 (0.19\%)} & \textbf{0} \\
+Near-duplicate question       & 7 (0.68\%) & 0 \\
+Shared group values           & 0 databases & --- \\
+\bottomrule
+\end{tabular}
+\caption{Cross-split contamination. Requiring both the question and the
+reference answer to match is the measurement that bounds what a model can
+answer from memory alone.}
+\label{tab:leak}
+\end{table}
+
+Spider's splits share no databases, so an identical question across them is
+posed of entirely different data. Every collision is a degenerate row-count
+question landing on a coincidentally same-named table: \emph{``What is the
+total number of airlines?''} appears against both \texttt{flight\_2} and
+\texttt{flight\_4}, each reducing to \texttt{SELECT count(*) FROM AIRLINES}.
+Two development items out of $1{,}034$ are answerable from memorised training
+data, and both are trivial counts.
+
+Reporting only the identical-question row would place the figure at 6 and the
+framing at three times its true severity.
+
+GSM8K shows no measurable overlap on any check. Because that result came from
+the approximate path, we recomputed it under exact cross-product search over
+all $9{,}852{,}887$ pairs: still zero, in 13 seconds. A zero produced by an
+approximate method is precisely where verification is worth its cost.
+
+\subsection{The duplicate curve}
+
+Fixing a single threshold discards the shape of the similarity distribution.
+Table~\ref{tab:curve} sweeps it.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Threshold & Spider (train) & GSM8K (train) & Alpaca \\
+\midrule
+$\geq 0.7$ & 11.000 & 0.134 & 0.000 \\
+$\geq 0.6$ & 20.571 & 0.401 & 0.019 \\
+$\geq 0.5$ & 35.000 & 1.338 & 0.519 \\
+$\geq 0.4$ & 52.714 & 3.345 & 11.076 \\
+\midrule
+$0.5 \to 0.4$ ratio & $1.5\times$ & $2.5\times$ & $\mathbf{21.3\times}$ \\
+\bottomrule
+\end{tabular}
+\caption{Near-duplicate clusters per $1{,}000$ records across similarity
+thresholds.}
+\label{tab:curve}
+\end{table}
+
+The two human-authored datasets decay smoothly, gaining $1.5\times$ to
+$2.5\times$ per threshold step, despite differing by two orders of magnitude in
+absolute density. Alpaca is empty above $0.6$ and then gains $21.3\times$ in a
+single step.
+
+We interpret this discontinuity as a residue of the ROUGE-L similarity filter
+applied when Alpaca's instructions were generated. We are explicit about what
+is measured and what is inferred: the curve is measured, and the attribution to
+the generation-time filter is an inference from its shape together with the
+documented generation procedure. We did not have access to the generation
+pipeline itself.
+
+The filter was evidently effective. Alpaca contains \emph{no} exact duplicate
+instruction across all $52{,}002$ records---verified by direct hashing,
+independent of the approximate near-duplicate path---and none at all above
+$0.6$ similarity.
+
+The practical consequence is the point. A practitioner deduplicating a
+synthetic corpus at a threshold at or above its generation-time filter recovers
+zero and concludes the corpus is clean. The filter has already cleared that
+range; the mass sits immediately beneath it. Sweeping the threshold rather than
+fixing it makes this visible in a single pass.
+
+\subsection{Agreement between exact and approximate search}
+
+Switching search algorithms partway through a comparison is a standard way for
+tables to quietly lose meaning. On Spider's development split, where both are
+tractable, exact all-pairs search examined $534{,}061$ candidate pairs and
+MinHash-LSH examined $232$. Both returned the same 3 pairs and the same 3
+clusters.
+
+\section{Limitations}
+
+LSH offers no recall guarantee, so counts on datasets above the switching
+threshold are lower bounds. The agreement check above found no loss, but a
+single clean result is not a proof; every report we release states which method
+produced it.
+
+Similarity is computed over the text field only. The attribution of Alpaca's
+curve discontinuity to its generation filter is an inference, as noted.
+
+Cross-split contamination is measured only between the two splits supplied. It
+says nothing about overlap with a model's pretraining corpus, which is the
+larger and considerably harder question.
+
+The $0.70$ threshold and $3$-word shingle size are defensible defaults rather
+than tuned optima; both are exposed as parameters, and the curve measurement
+exists precisely because no single threshold is privileged.
+
+\section{Conclusion}
+
+Across seven datasets and $69{,}592$ records, the six human-authored benchmarks
+are structurally sound: no schema violations, no degenerate records, and 18
+genuinely duplicated records in total. Reporting that plainly matters, because
+the value of an audit lies in its willingness to return a negative result.
+
+What is not sound is the default method for reaching such conclusions. Counting
+similarity clusters overstates redundancy by $9\times$ on Spider; counting
+identical questions overstates contamination by $3\times$. Both errors share a
+correction---require the reference answer to match, not only the
+question---and any pipeline that deduplicates on question text alone is
+simultaneously discarding usable training data and overreporting contamination.
+
+For synthetic corpora, the threshold sweep should replace the point
+measurement. A single threshold cannot distinguish a corpus with no
+near-duplicates from one whose near-duplicates were filtered out at generation
+time and now sit just below wherever one happened to look.
+
+\section*{Reproducibility}
+
+All code is pure Python standard library; \texttt{datasets} is required only to
+retrieve source data. Every table reproduces from the released repository:
+
+\begin{verbatim}
+python audit.py fetch --dataset xlangai/spider --split train --out spider.jsonl
+python audit.py prep  --data spider.jsonl --preset spider
+python audit.py leak  --a spider-train.jsonl --b spider-dev.jsonl --preset spider
+python audit.py curve --data alpaca.jsonl --text-field instruction \
+                      --answer-field output
+\end{verbatim}
+
+Repository: \url{https://github.com/ashishsinha1602/dataset-integrity-audit}\\
+Interactive demonstration:
+\url{https://huggingface.co/spaces/Ashsinha1/dataset-integrity-auditor}
+
+\end{document}
