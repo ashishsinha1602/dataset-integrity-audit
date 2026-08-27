@@ -1,0 +1,762 @@
+{
+  "name": "MCP registry",
+  "source": "mcp-latest.jsonl",
+  "records": 25125,
+  "roles": {
+    "text": "description",
+    "answer": "name",
+    "group": "_status",
+    "labels": []
+  },
+  "schema": {
+    "$schema": {
+      "type": "str",
+      "present": 25125,
+      "type_counts": {
+        "str": 25125
+      }
+    },
+    "name": {
+      "type": "str",
+      "present": 25125,
+      "type_counts": {
+        "str": 25125
+      }
+    },
+    "description": {
+      "type": "str",
+      "present": 25125,
+      "type_counts": {
+        "str": 25125
+      }
+    },
+    "title": {
+      "type": "str",
+      "present": 14384,
+      "type_counts": {
+        "str": 14384
+      }
+    },
+    "version": {
+      "type": "str",
+      "present": 25125,
+      "type_counts": {
+        "str": 25125
+      }
+    },
+    "remotes": {
+      "type": "list",
+      "present": 13866,
+      "type_counts": {
+        "list": 13866
+      }
+    },
+    "_status": {
+      "type": "str",
+      "present": 25125,
+      "type_counts": {
+        "str": 25125
+      }
+    },
+    "_isLatest": {
+      "type": "bool",
+      "present": 25125,
+      "type_counts": {
+        "bool": 25125
+      }
+    },
+    "_publishedAt": {
+      "type": "str",
+      "present": 25125,
+      "type_counts": {
+        "str": 25125
+      }
+    },
+    "repository": {
+      "type": "dict",
+      "present": 19676,
+      "type_counts": {
+        "dict": 19676
+      }
+    },
+    "websiteUrl": {
+      "type": "str",
+      "present": 11626,
+      "type_counts": {
+        "str": 11626
+      }
+    },
+    "packages": {
+      "type": "list",
+      "present": 12158,
+      "type_counts": {
+        "list": 12158
+      }
+    },
+    "_meta": {
+      "type": "dict",
+      "present": 1096,
+      "type_counts": {
+        "dict": 1096
+      }
+    },
+    "icons": {
+      "type": "list",
+      "present": 1686,
+      "type_counts": {
+        "list": 1686
+      }
+    }
+  },
+  "malformed_lines": 0,
+  "schema_issues": 101383,
+  "schema_issue_examples": [
+    {
+      "index": 0,
+      "problem": "missing_field",
+      "field": "repository"
+    },
+    {
+      "index": 0,
+      "problem": "missing_field",
+      "field": "websiteUrl"
+    },
+    {
+      "index": 0,
+      "problem": "missing_field",
+      "field": "packages"
+    },
+    {
+      "index": 0,
+      "problem": "missing_field",
+      "field": "_meta"
+    },
+    {
+      "index": 0,
+      "problem": "missing_field",
+      "field": "icons"
+    },
+    {
+      "index": 1,
+      "problem": "missing_field",
+      "field": "title"
+    },
+    {
+      "index": 1,
+      "problem": "missing_field",
+      "field": "packages"
+    },
+    {
+      "index": 1,
+      "problem": "missing_field",
+      "field": "_meta"
+    },
+    {
+      "index": 1,
+      "problem": "missing_field",
+      "field": "icons"
+    },
+    {
+      "index": 2,
+      "problem": "missing_field",
+      "field": "repository"
+    },
+    {
+      "index": 2,
+      "problem": "missing_field",
+      "field": "packages"
+    },
+    {
+      "index": 2,
+      "problem": "missing_field",
+      "field": "_meta"
+    },
+    {
+      "index": 2,
+      "problem": "missing_field",
+      "field": "icons"
+    },
+    {
+      "index": 3,
+      "problem": "missing_field",
+      "field": "repository"
+    },
+    {
+      "index": 3,
+      "problem": "missing_field",
+      "field": "packages"
+    },
+    {
+      "index": 3,
+      "problem": "missing_field",
+      "field": "_meta"
+    },
+    {
+      "index": 3,
+      "problem": "missing_field",
+      "field": "icons"
+    },
+    {
+      "index": 4,
+      "problem": "missing_field",
+      "field": "repository"
+    },
+    {
+      "index": 4,
+      "problem": "missing_field",
+      "field": "packages"
+    },
+    {
+      "index": 4,
+      "problem": "missing_field",
+      "field": "_meta"
+    }
+  ],
+  "degenerate_records": 0,
+  "degenerate_examples": [],
+  "distributions": {
+    "group_field": "_status",
+    "distinct_groups": 2,
+    "items_per_group_mean": 12562.5,
+    "top_group_share": 0.9896,
+    "groups": {
+      "active": 24863,
+      "deprecated": 262
+    }
+  },
+  "similarity_method": "minhash-lsh",
+  "similarity_threshold": 0.7,
+  "candidate_pairs_examined": 126601,
+  "duplicates": {
+    "exact_duplicate_text_groups": 418,
+    "exact_duplicate_text_records": 904,
+    "exact_duplicate_answer_groups": 6,
+    "exact_duplicate_answer_records": 12,
+    "near_duplicate_pairs": 4255,
+    "near_duplicate_clusters": 487,
+    "records_in_clusters": 1252,
+    "fully_identical_clusters": 0,
+    "records_fully_identical": 0,
+    "shared_stem_variant_clusters": 487
+  },
+  "rates_pct": {
+    "exact_duplicate_text": 3.6,
+    "records_in_clusters": 4.98,
+    "fully_identical": 0.0
+  },
+  "fully_identical_detail": [],
+  "shared_stem_variant_detail": [
+    {
+      "members": [
+        "row_98",
+        "row_99",
+        "row_100"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_203",
+        "row_23750"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_261",
+        "row_267"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_269",
+        "row_24957"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_420",
+        "row_23644"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_438",
+        "row_439"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_452",
+        "row_453"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_491",
+        "row_1003"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_515",
+        "row_516"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_556",
+        "row_9457"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_574",
+        "row_22112"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_577",
+        "row_18964"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_599",
+        "row_1072"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_708",
+        "row_709"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_898",
+        "row_20797"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1011",
+        "row_10398",
+        "row_20727"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_1031",
+        "row_1052"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1331",
+        "row_9409"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1349",
+        "row_1350"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1378",
+        "row_1658"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1418",
+        "row_4798"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1442",
+        "row_1450",
+        "row_1451",
+        "row_1458",
+        "row_1459",
+        "row_1460",
+        "row_1467",
+        "row_1478",
+        "row_1482",
+        "row_1488",
+        "row_1489",
+        "row_1492",
+        "row_1503",
+        "row_1504",
+        "row_1506",
+        "row_1509",
+        "row_1515",
+        "row_1531",
+        "row_1538",
+        "row_1539",
+        "row_1541"
+      ],
+      "size": 21
+    },
+    {
+      "members": [
+        "row_1446",
+        "row_1505",
+        "row_1513",
+        "row_1518",
+        "row_1542"
+      ],
+      "size": 5
+    },
+    {
+      "members": [
+        "row_1453",
+        "row_1557"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1469",
+        "row_1519"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1496",
+        "row_1520",
+        "row_1529"
+      ],
+      "size": 3
+    },
+    {
+      "members": [
+        "row_1532",
+        "row_1552"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1554",
+        "row_1559"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1617",
+        "row_1619"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1618",
+        "row_15030"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1681",
+        "row_1683"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1688",
+        "row_24144",
+        "row_24152",
+        "row_24153",
+        "row_24157"
+      ],
+      "size": 5
+    },
+    {
+      "members": [
+        "row_1752",
+        "row_2257"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1792",
+        "row_10405",
+        "row_11570",
+        "row_11654",
+        "row_11702",
+        "row_16293",
+        "row_20451",
+        "row_21501"
+      ],
+      "size": 8
+    },
+    {
+      "members": [
+        "row_1842",
+        "row_1843"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1863",
+        "row_12642"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1866",
+        "row_1867"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1912",
+        "row_24277"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_1932",
+        "row_1933"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2006",
+        "row_4357"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2074",
+        "row_11275"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2214",
+        "row_14166"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2239",
+        "row_22167"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2288",
+        "row_13869"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2319",
+        "row_5191"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2374",
+        "row_12754"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2420",
+        "row_12418"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2497",
+        "row_9275"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2513",
+        "row_15265"
+      ],
+      "size": 2
+    },
+    {
+      "members": [
+        "row_2527",
+        "row_20997",
+        "row_20998"
+      ],
+      "size": 3
+    }
+  ],
+  "top_near_duplicate_pairs": [
+    {
+      "a": "row_24124",
+      "b": "row_24168",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_9634",
+      "b": "row_21790",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24118",
+      "b": "row_24166",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1792",
+      "b": "row_16293",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_11321",
+      "b": "row_15533",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_20997",
+      "b": "row_20998",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_13610",
+      "b": "row_14091",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24127",
+      "b": "row_24173",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_6190",
+      "b": "row_6191",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_11661",
+      "b": "row_22074",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24119",
+      "b": "row_24125",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_9436",
+      "b": "row_9437",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24117",
+      "b": "row_24160",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_10578",
+      "b": "row_23242",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_9620",
+      "b": "row_15088",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_10550",
+      "b": "row_23211",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24131",
+      "b": "row_24168",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24130",
+      "b": "row_24160",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_13287",
+      "b": "row_13288",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_1681",
+      "b": "row_1683",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_2636",
+      "b": "row_21412",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24134",
+      "b": "row_24173",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_24113",
+      "b": "row_24131",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_10589",
+      "b": "row_23253",
+      "similarity": 1.0
+    },
+    {
+      "a": "row_10586",
+      "b": "row_23250",
+      "similarity": 1.0
+    }
+  ]
+}

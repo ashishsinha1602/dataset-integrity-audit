@@ -1,0 +1,239 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\title{A Census of the Model Context Protocol Registry}
+
+\author{Ashish Sinha\\
+\texttt{sinha.ashish.4.u@gmail.com}}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The Model Context Protocol (MCP) has acquired a public registry of servers that
+agents can discover and connect to, but the contents of that registry have not
+been described. We retrieve it in full---$82{,}994$ version records resolving
+to $25{,}125$ distinct servers from $15{,}468$ publishers---and report what is
+in it.
+
+Three findings. First, the registry is a version log rather than a catalogue,
+and the distinction changes conclusions by an order of magnitude: $74.5\%$ of
+version records share a description with another record, but only $3.6\%$ of
+distinct servers do. Treating version history as duplication overstates it by
+$20.7\times$. One server accounts for $1{,}175$ published versions.
+
+Second, $393$ servers ($1.56\%$) declare neither a remote endpoint nor an
+installable package. They are listed and discoverable but cannot be connected
+to or installed by any means the registry describes.
+
+Third, the publisher distribution is extremely long-tailed: $89.5\%$ of
+publishers have registered exactly one server, while the ten largest account
+for $15.7\%$ of all servers. Registry-level statistics are therefore
+dominated by a handful of bulk publishers, and any measure that does not
+account for this describes those publishers rather than the ecosystem.
+
+We also find $5{,}643$ servers ($22.5\%$) with no repository link and eight
+still shipping the unedited template string \texttt{[describe what your server
+does]}. Retrieval and analysis code is released.
+\end{abstract}
+
+\section{Introduction}
+
+The Model Context Protocol standardises how language-model agents connect to
+external tools. A public registry lists servers implementing it, and agent
+runtimes increasingly consult that registry to decide what an agent can reach.
+What the registry actually contains has not, to our knowledge, been measured.
+
+This matters for a practical reason. When a registry is used for discovery, its
+contents become the search space an agent selects from. Entries that cannot be
+installed, that are indistinguishable from one another, or that are duplicated
+by version churn all degrade that selection, and none of them are visible from
+a single listing page.
+
+We retrieve the registry in full and describe it. Our contributions are a
+complete census as of August 2026, a methodological caution about the unit of
+analysis that changes headline numbers by $20.7\times$, and released code that
+reproduces every figure.
+
+\section{Data}
+
+We retrieved every record from the public registry endpoint
+\texttt{registry.modelcontextprotocol.io/v0/servers} by cursor pagination in
+August 2026, continuing until the endpoint returned no further cursor:
+$82{,}994$ records over $830$ pages.
+
+Each record carries a server name, a description, a version, a publication
+status, and an \texttt{isLatest} flag, together with optional
+\texttt{repository}, \texttt{remotes}, \texttt{packages}, \texttt{title},
+\texttt{websiteUrl}, and \texttt{icons} fields. Names are namespaced, so the
+segment before the first slash identifies the publisher.
+
+\subsection{The unit of analysis}
+
+The endpoint returns one record per published \emph{version}, not per server.
+Filtering to \texttt{isLatest} leaves $25{,}125$ distinct servers, a mean of
+$3.30$ versions each. The maximum is $1{,}175$ versions of a single server.
+
+This distinction is not cosmetic. Table~\ref{tab:unit} shows the same
+duplicate-description measurement computed both ways.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Unit of analysis & Records & Sharing a description \\
+\midrule
+Version records (as returned) & 82{,}994 & 61{,}859 \quad (74.5\%) \\
+Distinct servers (\texttt{isLatest}) & 25{,}125 & 904 \quad (3.6\%) \\
+\midrule
+\multicolumn{2}{l}{Overstatement factor} & $\mathbf{20.7\times}$ \\
+\bottomrule
+\end{tabular}
+\caption{Duplicate descriptions under two units of analysis. A version log read
+as a catalogue reports a registry that is three-quarters duplicated; it is not.}
+\label{tab:unit}
+\end{table}
+
+Read naively, the registry appears to be $74.5\%$ duplicate. It is not. Nearly
+all of that figure is one publisher republishing one server, and a measurement
+that does not deduplicate to latest versions is measuring release cadence. All
+figures below use distinct servers.
+
+\section{Findings}
+
+\subsection{Servers that cannot be reached}
+
+A registry entry is actionable only if it says how to connect. A server
+declares either \texttt{remotes} (a hosted endpoint) or \texttt{packages} (an
+installable artefact), or both.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Transport & Servers & Share \\
+\midrule
+Remote, streamable HTTP & 13{,}279 & 52.9\% \\
+Package, npm            & 7{,}985  & 31.8\% \\
+Package, PyPI           & 3{,}434  & 13.7\% \\
+Remote, SSE             & 1{,}054  & 4.2\%  \\
+Package, MCPB           & 891      & 3.5\%  \\
+Package, OCI            & 821      & 3.3\%  \\
+Package, NuGet          & 105      & 0.4\%  \\
+\midrule
+\textbf{Neither}        & \textbf{393} & \textbf{1.56\%} \\
+\bottomrule
+\end{tabular}
+\caption{Declared transports. Servers may declare more than one, so shares
+exceed $100\%$. The final row counts servers declaring none.}
+\label{tab:transport}
+\end{table}
+
+$393$ servers declare no remote endpoint and no package. They occupy registry
+namespace and appear in discovery results, but nothing in their record
+describes how a client would reach them. A further $262$ servers are marked
+deprecated but remain listed.
+
+\subsection{Publisher concentration}
+
+$25{,}125$ servers come from $15{,}468$ publishers, but the distribution is
+severely skewed. $13{,}848$ publishers ($89.5\%$) have registered exactly one
+server. The largest single publisher accounts for $1{,}312$; the ten largest
+together account for $15.7\%$ of the registry.
+
+The consequence is that unweighted registry statistics describe bulk
+publishers rather than typical practice. Any claim of the form ``$X\%$ of MCP
+servers do $Y$'' should be checked against whether $X$ survives removing the
+top ten publishers.
+
+\subsection{Metadata completeness}
+
+No required field is missing from any record: name, description, version, and
+status are present on all $25{,}125$ servers. Optional fields vary widely, and
+we note two whose absence is consequential for anyone evaluating a server
+before connecting to it.
+
+$5{,}643$ servers ($22.5\%$) provide no \texttt{repository} link, so their
+implementation cannot be inspected from the registry entry. Eight servers still
+carry the unedited template string \texttt{[describe what your server does]} as
+their description---a small number, but one that indicates entries reach
+publication without review.
+
+Descriptions are capped at $100$ characters, with a median length of $89$. The
+cap is a registry constraint rather than an authoring choice, and it bounds how
+much any consumer can learn about a server before connecting.
+
+\subsection{Description similarity}
+
+Applying near-duplicate detection to descriptions of distinct servers
+($3$-word shingles, Jaccard, MinHash-LSH above $3{,}000$ records with exact
+verification of every candidate) yields $487$ clusters at threshold $0.70$,
+containing $1{,}252$ servers ($4.98\%$).
+
+Every one of these clusters is a \emph{shared-stem variant} rather than a set
+of identical records: the members share description text but differ in server
+name. None are identical across all evaluated fields. Descriptions alone are
+therefore a weak discriminator between registry entries---which matters
+directly, because a registry consumer choosing between servers sees little
+else.
+
+Sweeping the threshold gives a notably flat curve: $19.4$ clusters per $1{,}000$
+servers at $0.7$, rising only to $24.9$ at $0.4$, a $1.05\times$ increase over
+the final step. Short, capped marketing copy produces little near-duplicate
+structure at any threshold.
+
+\section{Limitations}
+
+The census is a snapshot taken in August 2026 of a registry under active
+growth; the absolute counts will drift, though the structural observations
+should not.
+
+We measure only what records declare. We did not attempt to connect to any
+endpoint, so we cannot say how many of the $24{,}732$ servers that \emph{do}
+declare a transport are actually reachable. The $393$ figure is a lower bound
+on unusable entries, established from the records alone.
+
+MinHash-LSH offers no recall guarantee, so cluster counts are lower bounds;
+every reported pair was verified with its exact Jaccard score.
+
+We do not evaluate server quality, safety, or behaviour. This is a census of
+what is listed, not an assessment of what those listings do.
+
+\section{Conclusion}
+
+The MCP registry contains $25{,}125$ distinct servers from $15{,}468$
+publishers, the overwhelming majority of whom have published exactly one. It
+is mostly complete and mostly non-redundant once read at the right unit of
+analysis, which is the caveat that matters most: the endpoint returns version
+history, and reading it as a catalogue turns a $3.6\%$ duplication rate into a
+$74.5\%$ one.
+
+The concrete defect worth fixing is small and specific. $393$ servers are
+listed with no way to reach them, $262$ deprecated servers remain in the
+listing, and eight entries were published without their template being filled
+in. These are validation gaps rather than design flaws, and a registry-side
+check at publication time would close all three.
+
+\section*{Reproducibility}
+
+Retrieval and analysis code, and the audit tooling used for the similarity
+measurements, are at
+\url{https://github.com/ashishsinha1602/dataset-integrity-audit}.
+
+\begin{verbatim}
+python fetch_mcp_registry.py --out mcp-registry.jsonl
+python audit.py prep --data mcp-latest.jsonl --text-field description \
+                     --answer-field name --group-field _status
+python audit.py curve --data mcp-latest.jsonl --text-field description \
+                      --answer-field name
+\end{verbatim}
+
+\end{document}

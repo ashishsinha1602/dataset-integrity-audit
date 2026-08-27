@@ -1,0 +1,40 @@
+{
+  "name": "MCP registry",
+  "records": 25125,
+  "roles": {
+    "text": "description",
+    "answer": "name",
+    "group": null,
+    "labels": []
+  },
+  "method": "minhash-lsh",
+  "curve": [
+    {
+      "threshold": 0.7,
+      "clusters": 487,
+      "pairs": 4255,
+      "per_1k_records": 19.383
+    },
+    {
+      "threshold": 0.6,
+      "clusters": 566,
+      "pairs": 11285,
+      "per_1k_records": 22.527,
+      "jump_vs_previous": 1.16
+    },
+    {
+      "threshold": 0.5,
+      "clusters": 593,
+      "pairs": 61432,
+      "per_1k_records": 23.602,
+      "jump_vs_previous": 1.05
+    },
+    {
+      "threshold": 0.4,
+      "clusters": 625,
+      "pairs": 84273,
+      "per_1k_records": 24.876,
+      "jump_vs_previous": 1.05
+    }
+  ]
+}
