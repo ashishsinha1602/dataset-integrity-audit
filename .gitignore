@@ -7,3 +7,7 @@ __pycache__/
 *.pyc
 .venv/
 traction.csv
+pkg/dist/
+pkg/build/
+pkg/*.egg-info/
+pkg/dataset_integrity_audit.egg-info/

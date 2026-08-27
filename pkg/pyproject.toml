@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dataset-integrity-audit"
+version = "0.1.0"
+description = "Measure duplication, degeneracy and train/test contamination in any dataset"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "Ashish Sinha", email = "sinha.ashish.4.u@gmail.com"}]
+keywords = ["dataset", "benchmark", "contamination", "deduplication", "evaluation", "data-quality"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+hub = ["datasets>=3.0"]
+
+[project.urls]
+Homepage = "https://github.com/ashishsinha1602/dataset-integrity-audit"
+Demo = "https://huggingface.co/spaces/Ashsinha1/dataset-integrity-auditor"
+
+[project.scripts]
+dataset-audit = "dataset_integrity_audit.core:main"
+
+[tool.setuptools.packages.find]
+include = ["dataset_integrity_audit*"]
