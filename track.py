@@ -23,7 +23,15 @@ REPO = "ashishsinha1602/dataset-integrity-audit"
 GH = r"C:\Program Files\GitHub CLI\gh.exe"
 CSV_PATH = Path(__file__).with_name("traction.csv")
 FIELDS = ["date", "stars", "forks", "watchers", "views_14d", "uniques_14d",
-          "clones_14d", "unique_cloners_14d", "top_referrers"]
+          "clones_14d", "unique_cloners_14d", "top_referrers",
+          "mcp_issue_comments", "mcp_discussion_comments", "mcp_discussion_upvotes"]
+
+# Threads opened on the MCP registry. A maintainer reply on either is a
+# stronger early signal than any number on our own repo, so they are tracked
+# alongside it.
+MCP_REPO = "modelcontextprotocol/registry"
+MCP_ISSUE = 1579
+MCP_DISCUSSION = 1580
 
 
 def gh_api(path, jq=None):
@@ -62,6 +70,29 @@ def collect():
             print(f"  note: {key} traffic unavailable ({exc})")
             row[f"{key}_14d"] = ""
             row["uniques_14d" if key == "views" else "unique_cloners_14d"] = ""
+
+    try:
+        issue = json.loads(gh_api(
+            f"repos/{MCP_REPO}/issues/{MCP_ISSUE}"))
+        row["mcp_issue_comments"] = issue.get("comments", 0)
+    except Exception as exc:
+        print(f"  note: MCP issue unavailable ({exc})")
+        row["mcp_issue_comments"] = ""
+
+    try:
+        q = ('{repository(owner:"modelcontextprotocol",name:"registry")'
+             '{discussion(number:%d){comments{totalCount} upvoteCount}}}'
+             % MCP_DISCUSSION)
+        d = json.loads(subprocess.run(
+            [GH, "api", "graphql", "-f", f"query={q}"],
+            capture_output=True, text=True, timeout=60).stdout
+        )["data"]["repository"]["discussion"]
+        row["mcp_discussion_comments"] = d["comments"]["totalCount"]
+        row["mcp_discussion_upvotes"] = d["upvoteCount"]
+    except Exception as exc:
+        print(f"  note: MCP discussion unavailable ({exc})")
+        row["mcp_discussion_comments"] = ""
+        row["mcp_discussion_upvotes"] = ""
 
     try:
         refs = json.loads(gh_api(f"repos/{REPO}/traffic/popular/referrers"))
@@ -112,6 +143,14 @@ def main():
     print(f"  14d views {row['views_14d']} ({row['uniques_14d']} unique) | "
           f"clones {row['clones_14d']} ({row['unique_cloners_14d']} unique)")
     print(f"  referrers: {row['top_referrers']}")
+    print(f"  MCP issue #{MCP_ISSUE}: {row['mcp_issue_comments']} comment(s) | "
+          f"discussion #{MCP_DISCUSSION}: "
+          f"{row['mcp_discussion_comments']} comment(s), "
+          f"{row['mcp_discussion_upvotes']} upvote(s)")
+    if str(row.get("mcp_issue_comments") or "0") not in ("0", ""):
+        print("  *** someone replied on the MCP issue - go look ***")
+    if str(row.get("mcp_discussion_comments") or "0") not in ("0", ""):
+        print("  *** someone replied on the MCP discussion - go look ***")
 
     if len(history) > 1:
         prev = history[-2]
