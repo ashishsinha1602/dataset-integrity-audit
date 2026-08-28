@@ -75,9 +75,13 @@ million calls.
 
 We treat \texttt{BUILD\_ERROR}, \texttt{RUNTIME\_ERROR}, \texttt{CONFIG\_ERROR},
 and \texttt{NO\_APP\_FILE} as broken. We deliberately do \emph{not} count
-\texttt{SLEEPING}: a sleeping Space wakes on request and is working software.
-Folding sleeping Spaces into a defect count would roughly double the headline
-figure and would be wrong.
+\texttt{SLEEPING}, which the platform documents as a Space idled to save
+compute and woken on request. Folding sleeping Spaces into a defect count
+would roughly double the headline figure on an assumption we would rather not
+make. Our own attempt to verify that they wake was inconclusive
+(Section~\ref{sec:limitations}), so this exclusion should be read as making the
+reported figure conservative, not as a validated claim that every sleeping
+Space is healthy.
 
 \subsection{Static Spaces are excluded from the denominator}
 
@@ -213,6 +217,7 @@ catalogue, and $518{,}796$ authors ($66.61\%$) have exactly one. The catalogue
 is not the product of bulk uploaders.
 
 \section{Limitations}
+\label{sec:limitations}
 
 This is a single snapshot taken on 28 August 2026. The age gradient is
 cross-sectional: we observe that older cohorts are more broken, not individual
