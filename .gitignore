@@ -13,3 +13,4 @@ pkg/*.egg-info/
 pkg/dataset_integrity_audit.egg-info/
 mcp-registry.jsonl
 mcp-latest.jsonl
+census-history.csv
