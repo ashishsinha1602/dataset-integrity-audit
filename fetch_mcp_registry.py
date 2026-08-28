@@ -47,11 +47,17 @@ def flatten(record):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default="mcp-registry.jsonl")
-    ap.add_argument("--latest-out", default="mcp-latest.jsonl",
-                    help="distinct servers only; pass empty string to skip")
+    ap.add_argument("--latest-out", default=None,
+                    help="distinct servers only; defaults to <out> with a "
+                         "-latest suffix. Pass empty string to skip.")
     ap.add_argument("--limit", type=int, default=100)
+    ap.add_argument("--max-pages", type=int, default=0,
+                    help="stop after N pages; 0 means fetch everything")
     args = ap.parse_args()
 
+    print(f"fetching {ENDPOINT} ({args.limit} per page)...")
+    print("  a full fetch is ~830 pages and takes a few minutes; "
+          "use --max-pages to sample")
     records, cursor, pages = [], None, 0
     while True:
         try:
@@ -68,9 +74,14 @@ def main():
         records.extend(batch)
         pages += 1
         cursor = (data.get("metadata") or {}).get("nextCursor")
-        if pages % 50 == 0:
-            print(f"  {pages} pages / {len(records)} records")
+        if pages % 10 == 0:
+            print(f"  {pages} pages / {len(records)} records", flush=True)
         if not cursor:
+            print("  reached end of registry")
+            break
+        if args.max_pages and pages >= args.max_pages:
+            print(f"  stopping at --max-pages {args.max_pages} "
+                  f"(registry has more)")
             break
 
     print(f"retrieved {len(records)} version records in {pages} pages")
@@ -81,12 +92,19 @@ def main():
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
     print(f"wrote {args.out}")
 
-    if args.latest_out:
+    # Derive from --out rather than a fixed name, so writing a sample to one
+    # path cannot silently overwrite a full fetch sitting at the default.
+    latest_out = args.latest_out
+    if latest_out is None:
+        base = args.out[:-6] if args.out.endswith(".jsonl") else args.out
+        latest_out = f"{base}-latest.jsonl"
+
+    if latest_out:
         latest = [r for r in flat if r.get("_isLatest")]
-        with open(args.latest_out, "w", encoding="utf-8") as fh:
+        with open(latest_out, "w", encoding="utf-8") as fh:
             for r in latest:
                 fh.write(json.dumps(r, ensure_ascii=False) + "\n")
-        print(f"wrote {args.latest_out} ({len(latest)} distinct servers)")
+        print(f"wrote {latest_out} ({len(latest)} distinct servers)")
 
 
 if __name__ == "__main__":
