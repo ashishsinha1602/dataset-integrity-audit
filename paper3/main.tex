@@ -1,0 +1,250 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\title{Most Hosted Demos Are Broken: A Census of 1.46 Million\\
+Hugging Face Spaces}
+
+\author{Ashish Sinha\\
+\texttt{sinha.ashish.4.u@gmail.com}}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Hugging Face Spaces host interactive demonstrations of machine-learning work,
+and links to them appear throughout papers, model cards, and documentation. We
+enumerate the complete public catalogue---$1{,}458{,}692$ Spaces from
+$778{,}898$ authors---and report the fraction that still runs.
+
+Excluding \texttt{static} Spaces, which are files on a CDN and cannot fail,
+$443{,}683$ of $1{,}150{,}413$ real applications ($38.57\%$) are in a
+permanently failed state, while only $32{,}786$ ($2.85\%$) are running. A
+listed non-static Space is $13.5\times$ more likely to be broken than running.
+
+The failure rate tracks age monotonically: $85.82\%$ of the 2022 cohort is
+broken, against $23.15\%$ of the 2025 cohort. This is the signature of
+dependency drift rather than of demos that never worked, and it is corroborated
+by modification times---$33.22\%$ of broken Spaces were last touched over two
+years ago, against $7.48\%$ of healthy ones.
+
+None of this is concealed. Hugging Face publishes the runtime stage of every
+Space through its own API. The contribution here is the aggregate, which to our
+knowledge has not previously been reported, and the observation that the
+headline \texttt{RUNNING} count is dominated by static pages: $307{,}573$ of
+the $340{,}359$ Spaces marked running are static HTML.
+
+Data and code are released.
+\end{abstract}
+
+\section{Introduction}
+
+A hosted demo is a claim that a piece of work can be run. Spaces links are
+cited in papers, embedded in model cards, and used as evidence that a method
+is usable. That claim decays silently: the link stays valid, the page still
+loads, and the application behind it stopped building some time ago.
+
+Hugging Face reports the runtime state of every Space through its public API,
+so this is not hidden information. It has, as far as we can determine, simply
+not been added up.
+
+Our contributions are a complete-population census rather than a sample, a
+validation pass distinguishing permanent failure from transient states, and
+the observation that the platform's own headline availability number is
+carried almost entirely by static pages that cannot fail.
+
+\section{Method}
+
+We enumerated the public Spaces catalogue through
+\texttt{HfApi.list\_spaces} with the \texttt{runtime}, \texttt{sdk},
+\texttt{likes}, \texttt{createdAt}, and \texttt{lastModified} fields expanded,
+paginating until the generator was exhausted. This yielded $1{,}458{,}692$
+records with no duplicate identifiers and no private entries. It is the
+population, not a sample, so no weighting or confidence intervals are required.
+
+Runtime state is available in the listing itself, which is what makes a
+full-population measurement practical; a per-Space query would require 1.46
+million calls.
+
+\subsection{What counts as broken}
+
+We treat \texttt{BUILD\_ERROR}, \texttt{RUNTIME\_ERROR}, \texttt{CONFIG\_ERROR},
+and \texttt{NO\_APP\_FILE} as broken. We deliberately do \emph{not} count
+\texttt{SLEEPING}: a sleeping Space wakes on request and is working software.
+Folding sleeping Spaces into a defect count would roughly double the headline
+figure and would be wrong.
+
+\subsection{Static Spaces are excluded from the denominator}
+
+A \texttt{static} Space is HTML served from a CDN. It has no build step and no
+runtime, so it cannot enter a failed state---their observed breakage rate is
+$0.06\%$. Including them in an availability figure measures the CDN rather than
+the demos. All headline figures below are computed over non-static Spaces; both
+denominators are reported so either can be recovered.
+
+\subsection{Validation}
+
+Two checks were run against the live API rather than the listing.
+
+\textbf{Listing fidelity.} 300 randomly selected Spaces were re-queried
+individually. 299 of 300 agreed with the listing. The single disagreement was
+\texttt{RUNNING} $\rightarrow$ \texttt{SLEEPING}, an ordinary idle transition.
+No error state was misreported.
+
+\textbf{Failure persistence.} 300 Spaces in error states (100 each of
+\texttt{BUILD\_ERROR}, \texttt{RUNTIME\_ERROR}, \texttt{CONFIG\_ERROR}) were
+independently re-queried with retries. All 300 were still broken; none had
+recovered. These are not transient crashes.
+
+\section{Results}
+
+\subsection{Runtime state}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Stage & Spaces & Share \\
+\midrule
+SLEEPING & 551{,}048 & 37.78\% \\
+RUNNING & 340{,}359 & 23.33\% \\
+RUNTIME\_ERROR & 326{,}547 & 22.39\% \\
+PAUSED & 123{,}155 & 8.44\% \\
+BUILD\_ERROR & 101{,}468 & 6.96\% \\
+CONFIG\_ERROR & 15{,}848 & 1.09\% \\
+BUILDING & 153 & 0.01\% \\
+APP\_STARTING & 80 & 0.01\% \\
+\midrule
+Total & 1{,}458{,}692 & \\
+\bottomrule
+\end{tabular}
+\caption{Runtime state across the complete public catalogue.}
+\label{tab:stage}
+\end{table}
+
+\subsection{The running figure is carried by static pages}
+
+$340{,}359$ Spaces report \texttt{RUNNING}. Of these, $307{,}573$ are
+\texttt{static}. Restricting to the $1{,}150{,}413$ Spaces that are actual
+applications:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+& Spaces & Share of non-static \\
+\midrule
+\textbf{Broken} & \textbf{443{,}683} & \textbf{38.57\%} \\
+\textbf{Running} & \textbf{32{,}786} & \textbf{2.85\%} \\
+Sleeping & 551{,}048 & 47.90\% \\
+Paused & 122{,}663 & 10.66\% \\
+\bottomrule
+\end{tabular}
+\caption{Non-static Spaces. A listed application is $13.5\times$ more likely
+to be broken than running.}
+\label{tab:nonstatic}
+\end{table}
+
+\subsection{Failure tracks age}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Created & Spaces & Broken & Rate \\
+\midrule
+2022 & 16{,}429 & 14{,}100 & \textbf{85.82\%} \\
+2023 & 107{,}879 & 75{,}974 & 70.43\% \\
+2024 & 177{,}780 & 92{,}423 & 51.99\% \\
+2025 & 653{,}288 & 151{,}247 & 23.15\% \\
+2026 & 503{,}316 & 110{,}127 & 21.88\% \\
+\bottomrule
+\end{tabular}
+\caption{Breakage by creation year, all Spaces.}
+\label{tab:cohort}
+\end{table}
+
+The gradient is monotonic across four years and spans $64$ percentage points.
+Demos that never worked would produce a flat rate across cohorts; a rate that
+climbs with age is the signature of environments drifting out from under code
+that once ran. Modification times agree: $33.22\%$ of broken Spaces were last
+touched more than two years ago, against $7.48\%$ of healthy ones.
+
+\subsection{Framework}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+SDK & Spaces & Broken \\
+\midrule
+gradio & 590{,}852 & 44.28\% \\
+docker & 443{,}691 & 28.01\% \\
+static & 308{,}279 & 0.06\% \\
+streamlit & 101{,}784 & 43.50\% \\
+none declared & 14{,}086 & 96.09\% \\
+\bottomrule
+\end{tabular}
+\caption{Breakage by declared SDK.}
+\label{tab:sdk}
+\end{table}
+
+Docker Spaces fail at roughly two-thirds the rate of Gradio and Streamlit
+Spaces, which is consistent with pinned images resisting dependency drift
+better than a requirements file resolved at build time.
+
+\subsection{Attention is concentrated; authorship is not}
+
+$1{,}359{,}189$ Spaces ($93.18\%$) have zero likes, and the top $0.1\%$ hold
+$65.13\%$ of all $1{,}102{,}567$ likes.
+
+Authorship shows the opposite shape, and we report it because we expected
+otherwise: the ten largest authors hold $6{,}859$ Spaces, just $0.47\%$ of the
+catalogue, and $518{,}796$ authors ($66.61\%$) have exactly one. The catalogue
+is not the product of bulk uploaders.
+
+\section{Limitations}
+
+This is a single snapshot taken on 28 August 2026. The age gradient is
+cross-sectional: we observe that older cohorts are more broken, not individual
+Spaces breaking over time. That distinction matters, and a longitudinal panel
+would be needed to close it.
+
+We measured API-reported state, not HTTP reachability. A Space marked
+\texttt{RUNNING} was not confirmed to serve a response, so the true working
+fraction is at most $2.85\%$ of non-static Spaces and could be lower.
+
+\texttt{PAUSED} is ambiguous---it may reflect a deliberate author decision or
+an exhausted quota. We report it separately and exclude it from both the broken
+and running counts rather than guessing.
+
+Nothing here is concealed by the platform: every figure derives from state
+Hugging Face publishes through its own API.
+
+\section{Conclusion}
+
+Of $1{,}150{,}413$ hosted applications on Hugging Face Spaces, $38.57\%$ are
+permanently broken and $2.85\%$ are running. The platform's $340{,}359$
+\texttt{RUNNING} Spaces are $90\%$ static pages that cannot fail.
+
+The practical consequence is for anyone treating a Spaces link as evidence.
+For a demo published in 2022, the prior that it still runs is about one in
+seven. Link rot is understood for web citations; the same decay applies to
+hosted demos, is measurable, and is worse than the raw availability figure
+suggests.
+
+\section*{Reproducibility}
+
+Collection and analysis code, and the census data, are released at
+\url{https://github.com/ashishsinha1602/dataset-integrity-audit}.
+
+\end{document}
