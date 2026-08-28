@@ -219,9 +219,24 @@ cross-sectional: we observe that older cohorts are more broken, not individual
 Spaces breaking over time. That distinction matters, and a longitudinal panel
 would be needed to close it.
 
-We measured API-reported state, not HTTP reachability. A Space marked
-\texttt{RUNNING} was not confirmed to serve a response, so the true working
-fraction is at most $2.85\%$ of non-static Spaces and could be lower.
+We probed a random sample of $1{,}999$ non-static Spaces reporting
+\texttt{RUNNING} over HTTP. $91.5\%$ returned $200$; $5.5\%$ returned $404$ and
+the remainder $4xx$/$5xx$. \texttt{RUNNING} therefore means what it says, and
+the $2.85\%$ figure is close to the fraction that genuinely serves.
+
+We could not settle the corresponding question for \texttt{SLEEPING}. On a
+single request with a $75$--$90$ second timeout, roughly half of a $60$-Space
+sample returned a $2xx$ and the remainder $503$; two runs over the identical
+seeded sample disagreed on the split, so the measurement is time-dependent and
+we decline to draw a conclusion from it. Our choice not to count sleeping
+Spaces as broken is therefore conservative by construction rather than
+empirically validated, and the true unavailable fraction may be higher than
+reported.
+
+A separate probe of \texttt{static} Spaces returned $404$ almost universally,
+which is an artefact: static Spaces are not served from the
+\texttt{*.hf.space} subdomain the probe constructs. We discard that measurement
+rather than report it.
 
 \texttt{PAUSED} is ambiguous---it may reflect a deliberate author decision or
 an exhausted quota. We report it separately and exclude it from both the broken
