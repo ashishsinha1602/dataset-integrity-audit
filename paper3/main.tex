@@ -17,9 +17,8 @@ Spaces and 42{,}596 Paper-Linked Repositories}
 \maketitle
 
 \begin{abstract}
-Hugging Face Spaces host interactive demonstrations of machine-learning work,
-and links to them appear throughout papers, model cards, and documentation. We
-enumerate the complete public catalogue---$1{,}458{,}692$ Spaces from
+Hugging Face Spaces host interactive demonstrations of machine-learning work.
+We enumerate the complete public catalogue---$1{,}458{,}692$ Spaces from
 $778{,}898$ authors---and report the fraction that still runs.
 
 Excluding \texttt{static} Spaces, which are files on a CDN and cannot fail,
@@ -46,6 +45,13 @@ $2.64\%$ are gone, and that rate is \emph{flat} across nine years
 hosted demos do. The difference is roughly $15\times$, and it has a
 straightforward mechanism: a repository is static storage that persists at no
 cost, while a Space is a running service that decays without maintenance.
+
+We also tested, and could not support, the obvious harm claim. Across
+$3{,}141{,}764$ arXiv records only $197$ papers cite a Space in their abstract
+or comments, against $82{,}083$ citing a GitHub repository---a ratio of
+$417{:}1$. None of the cited Spaces had been deleted, and cited Spaces are
+significantly better maintained than age-matched peers. The breakage figure is
+therefore a statement about platform hygiene, not about the scholarly record.
 
 Data and code are released.
 \end{abstract}
