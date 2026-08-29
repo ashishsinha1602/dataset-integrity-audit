@@ -52,10 +52,22 @@ Data and code are released.
 
 \section{Introduction}
 
-A hosted demo is a claim that a piece of work can be run. Spaces links are
-cited in papers, embedded in model cards, and used as evidence that a method
-is usable. That claim decays silently: the link stays valid, the page still
-loads, and the application behind it stopped building some time ago.
+A hosted demo is a claim that a piece of work can be run, and that claim decays
+silently: the link stays valid, the page still loads, and the application
+behind it stopped building some time ago.
+
+We should be precise about who this affects, because our first instinct was
+wrong. We assumed papers routinely cite Spaces, and measured it rather than
+asserting it. Across $3{,}141{,}764$ arXiv records, only $197$ papers cite a
+Space in their abstract or comments---$1$ in $3{,}496$ machine-learning
+papers---against $82{,}083$ citing a GitHub repository, a ratio of $417{:}1$.
+No Space is cited by more than one paper.
+
+So this is a platform hygiene result, not a reproducibility crisis in the
+scholarly record. Section~\ref{sec:citation} reports that measurement,
+including two findings that cut against the alarming reading: none of the
+cited Spaces had been deleted, and cited Spaces are significantly
+\emph{better} maintained than age-matched peers.
 
 Hugging Face reports the runtime state of every Space through its public API,
 so this is not hidden information. It has, as far as we can determine, simply
@@ -223,6 +235,76 @@ Authorship shows the opposite shape, and we report it because we expected
 otherwise: the ten largest authors hold $6{,}859$ Spaces, just $0.47\%$ of the
 catalogue, and $518{,}796$ authors ($66.61\%$) have exactly one. The catalogue
 is not the product of bulk uploaders.
+
+
+
+\section{Who depends on these? A null}
+\label{sec:citation}
+
+The obvious next claim---that broken Spaces damage the scholarly record---is
+one we tested and could not support.
+
+\subsection{Prevalence}
+
+We extracted Hugging Face Space URLs from the abstracts and comment fields of
+the complete arXiv metadata snapshot ($3{,}141{,}764$ records, all ten shards,
+row count verified against the hosting service).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Papers citing & Count & Share of ML papers \
+\midrule
+Any Hugging Face Space & 197 & 0.029\% (1 in 3{,}496) \
+Any GitHub repository & 82{,}083 & 10.96\% (1 in 9) \
+\bottomrule
+\end{tabular}
+\caption{Citation prevalence in the same corpus, on the same surface. The
+ratio is $417{:}1$; by distinct entity, $42{,}545$ repositories against $199$
+Spaces.}
+\label{tab:prevalence}
+\end{table}
+
+No Space is cited by more than one paper. Only $20.7\%$ of Space-citing papers
+also cite a repository.
+
+\subsection{Cited Spaces are better maintained, not worse}
+
+Of the $199$ distinct cited Spaces, $16$ were absent from our catalogue
+snapshot. Resolving each individually rather than recording them as dead:
+\textbf{none had been deleted}. Six are private or gated, eight resolve under a
+new canonical id after a rename, and two are public but missing from the
+snapshot---a catalogue coverage gap of roughly $1\%$ that we report against
+ourselves.
+
+Among the $162$ reachable non-static cited Spaces, $30.25\%$ are broken against
+the catalogue baseline of $38.57\%$. The raw comparison is confounded, since
+the catalogue is dominated by recent creations; matched by creation year, cited
+Spaces are $30.25\%$ broken against an expected $44.95\%$
+($-14.71$ points, $z = -3.76$), and they beat the catalogue in every cohort.
+Being cited is associated with better maintenance.
+
+\subsection{What survives}
+
+The advantage is not close to sufficient in absolute terms. By paper year,
+among reachable non-static cited Spaces: $59.09\%$ broken for 2023 papers
+($n=22$), $44.68\%$ for 2024 ($n=47$), $36.36\%$ for 2025 ($n=44$). A Space
+cited by a 2023 paper is more likely broken than working.
+
+We state that as an observation, not a headline. At $n=22$ per cell it is an
+anecdote with a confidence interval. The defensible result of this section is
+the prevalence null: the literature does not depend on Spaces links, so the
+$38.57\%$ figure should be read as a statement about the platform rather than
+about reproducibility.
+
+\subsection{Limitation}
+
+This measures abstract and comment fields only; links in paper bodies are
+invisible to it, so $197$ is a lower bound on true citation. The GitHub
+comparison uses the same surface and corpus, so the $417{:}1$ ratio holds even
+though the absolute prevalence is understated.
 
 
 \section{Control: linked code repositories do not decay}

@@ -1,0 +1,17 @@
+slug_lc,http,canonical,stage,sdk,renamed
+allen-eric/radiology-gpt,401,,,,
+cryo3978/med_graphrag,200,shuhengc/MED-COPILOT,PAUSED,streamlit,True
+debatelab/deepa2-demo,401,,,,
+dnaihao/chumor,200,MichiganNLP/Chumor-leaderboard,RUNTIME_ERROR,gradio,True
+fair-forward/evals-for-every-language,200,fair-forward/languagebench,RUNNING,docker,True
+funaudiollm/inspiremusic,401,,,,
+jackal-ai/jql,200,JQL-AI/JQL,RUNNING,static,True
+lmms-lab-si/easi-leaderboard,401,,,,
+matiasky/chexmask-u,200,mcosarinsky/CheXmask-U,BUILD_ERROR,gradio,True
+merterm/signed-instructions,200,merterm/signed-instructions,NO_APP_FILE,gradio,False
+nota-ai/compressed_wav2lip,200,nota-ai/compressed-wav2lip,RUNNING,gradio,True
+olddragon/m3sd,200,OldDragon/m3sd,RUNNING,static,False
+paddlepaddle/ernie-layout,401,,,,
+randommmm/mflp,200,tsinghua-fib-lab/MFLP,RUNTIME_ERROR,gradio,True
+swe-arena/software-engineering-arena,200,SWE-Arena/SWE-Chatbot-Arena,RUNNING,gradio,True
+zhiminy/awesome-foundation-model-leaderboard-search,401,,,,
