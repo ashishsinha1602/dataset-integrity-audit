@@ -39,6 +39,14 @@ knowledge has not previously been reported, and the observation that the
 headline \texttt{RUNNING} count is dominated by static pages: $307{,}573$ of
 the $340{,}359$ Spaces marked running are static HTML.
 
+As a control we measured the other artefact papers link to. Resolving
+$42{,}596$ distinct GitHub repositories extracted from arXiv metadata, only
+$2.64\%$ are gone, and that rate is \emph{flat} across nine years
+(Spearman $\rho = -0.48$ over 2018--2025). Code repositories do not rot;
+hosted demos do. The difference is roughly $15\times$, and it has a
+straightforward mechanism: a repository is static storage that persists at no
+cost, while a Space is a running service that decays without maintenance.
+
 Data and code are released.
 \end{abstract}
 
@@ -216,6 +224,101 @@ otherwise: the ten largest authors hold $6{,}859$ Spaces, just $0.47\%$ of the
 catalogue, and $518{,}796$ authors ($66.61\%$) have exactly one. The catalogue
 is not the product of bulk uploaders.
 
+
+\section{Control: linked code repositories do not decay}
+\label{sec:control}
+
+A finding that hosted demos break is only interesting if the alternative does
+not. Papers link to two kinds of artefact---a hosted demo and a source
+repository---so we measured the second the same way.
+
+\subsection{Corpus and method}
+
+We extracted \texttt{github.com/owner/repo} references from the abstracts and
+comment fields of an arXiv metadata snapshot, yielding $42{,}596$ distinct
+repositories, each dated by the v1 submission of its earliest citing paper.
+Every repository was resolved through the GitHub API. Only an explicit
+\texttt{NOT\_FOUND} counts as dead; rate limits, timeouts and $5xx$ are
+recorded separately. There were no unresolved cases.
+
+Verdicts were cross-checked against a second endpoint on a random subsample:
+$110/110$ dead confirmed, $59/59$ alive confirmed.
+
+We also examined the Papers with Code link archive ($232{,}271$ repositories)
+and report it only as a footnote, because it is survivorship-biased: those
+links were actively validated until the service shut down, so every entry was
+alive at snapshot and every cohort carries equal exposure. Its flatness is an
+artefact. The arXiv corpus is the valid test precisely because nobody ever
+curated it---a URL typed into a 2018 abstract sits in the metadata whether the
+repository still exists or not.
+
+\subsection{Result: a flat null}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Paper year & Repositories & Dead & Rate \
+\midrule
+2018 & 1{,}310 & 33 & 2.52\% \
+2019 & 2{,}641 & 43 & 1.63\% \
+2020 & 4{,}578 & 104 & 2.27\% \
+2021 & 6{,}080 & 134 & 2.20\% \
+2022 & 7{,}598 & 162 & 2.13\% \
+2023 & 5{,}086 & 142 & 2.79\% \
+2025 & 4{,}054 & 54 & 1.33\% \
+2026 & 14{,}092 & 485 & 3.44\% \
+\midrule
+All & 42{,}596 & 1{,}126 & 2.64\% \
+\bottomrule
+\end{tabular}
+\caption{Dead repository rate by paper year. Spearman $\rho = -0.48$ across
+2018--2025: if anything the relationship is inverted.}
+\label{tab:linkrot}
+\end{table}
+
+Eight-year-old links die at $2.52\%$ and one-year-old links at $1.33\%$. The
+worst cohort is the newest, and inspecting those slugs explains why: they are
+placeholders such as \texttt{pharos-anonymized/source-code} and repositories
+promised under review that were never published. These links were \emph{born}
+dead rather than having decayed.
+
+Among surviving repositories the pattern is dormancy, not disappearance:
+$85\%$ of those cited by 2015--2018 papers have had no commit in three or more
+years, with a median of $6.1$ years since the last push. They are unmaintained
+and they still resolve.
+
+\subsection{Why the two artefacts differ}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+& Hosted Spaces & Linked repositories \
+\midrule
+Population & 1{,}150{,}413 & 42{,}596 \
+Dead / broken & 38.57\% & 2.64\% \
+Oldest cohort & 85.82\% (2022) & 2.52\% (2018) \
+Trend with age & monotonic increase & flat ($\rho = -0.48$) \
+\bottomrule
+\end{tabular}
+\caption{The same question asked of both artefacts a paper can link.}
+\label{tab:contrast}
+\end{table}
+
+The mechanism is not mysterious. A repository is static storage: it costs its
+host nothing to keep serving and has no dependencies to drift. A Space is a
+running service that must resolve its dependencies, build, and execute; absent
+maintenance, the environment moves and the build stops succeeding.
+
+The practical implication is narrower and more useful than ``link rot.'' Code
+links are durable. It is specifically the \emph{executable} artefact that
+decays, and it decays quickly---within two years a Space is more likely broken
+than not.
+
+
 \section{Limitations}
 \label{sec:limitations}
 
@@ -254,13 +357,22 @@ Hugging Face publishes through its own API.
 
 Of $1{,}150{,}413$ hosted applications on Hugging Face Spaces, $38.57\%$ are
 permanently broken and $2.85\%$ are running. The platform's $340{,}359$
-\texttt{RUNNING} Spaces are $90\%$ static pages that cannot fail.
+\texttt{RUNNING} Spaces are $90\%$ static pages that cannot fail. Of
+$42{,}596$ repositories linked from arXiv papers, $2.64\%$ are gone, with no
+relationship to age.
 
-The practical consequence is for anyone treating a Spaces link as evidence.
-For a demo published in 2022, the prior that it still runs is about one in
-seven. Link rot is understood for web citations; the same decay applies to
-hosted demos, is measurable, and is worse than the raw availability figure
-suggests.
+The practical consequence is for anyone treating a hosted demo as evidence.
+For a Space published in 2022, the prior that it still runs is about one in
+seven. The repository beside it in the same paper is almost certainly still
+there.
+
+That asymmetry is the result worth carrying. ``Link rot'' is the wrong frame:
+links to code are durable, and have been for a decade. What decays is the
+executable artefact, because it is a service rather than a file, and it decays
+fast enough that a demo two years old is more likely broken than working.
+Anyone relying on a hosted demo to establish that a method runs should assume
+it no longer does, and anyone publishing one should expect to maintain it or
+watch it fail quietly.
 
 \section*{Reproducibility}
 
