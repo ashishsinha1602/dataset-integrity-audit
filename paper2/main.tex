@@ -28,9 +28,14 @@ version records share a description with another record, but only $3.6\%$ of
 distinct servers do. Treating version history as duplication overstates it by
 $20.7\times$. One server accounts for $1{,}175$ published versions.
 
-Second, $393$ servers ($1.56\%$) declare neither a remote endpoint nor an
-installable package. They are listed and discoverable but cannot be connected
-to or installed by any means the registry describes.
+Second, $189$ servers ($0.75\%$) are listed but unreachable by any means the
+registry describes. We report this figure after correcting our own initial
+count: $387$ active servers declare neither a remote endpoint nor an
+installable package, but the registry's documentation endorses exactly that
+shape for servers with a custom installation path, provided a
+\texttt{websiteUrl} points at setup instructions. $198$ of the $387$ do so and
+are following guidance. The remaining $189$ offer no endpoint, no package, and
+no page.
 
 Third, the publisher distribution is extremely long-tailed: $89.5\%$ of
 publishers have registered exactly one server, while the ten largest account
@@ -129,18 +134,30 @@ Package, MCPB           & 891      & 3.5\%  \\
 Package, OCI            & 821      & 3.3\%  \\
 Package, NuGet          & 105      & 0.4\%  \\
 \midrule
-\textbf{Neither}        & \textbf{393} & \textbf{1.56\%} \\
+Neither, with \texttt{websiteUrl} & 198 & 0.79\% \\
+\textbf{Neither, no \texttt{websiteUrl}} & \textbf{189} & \textbf{0.75\%} \\
 \bottomrule
 \end{tabular}
 \caption{Declared transports. Servers may declare more than one, so shares
-exceed $100\%$. The final row counts servers declaring none.}
+exceed $100\%$. The last two rows split servers declaring neither: those
+supplying a \texttt{websiteUrl}, which the specification documents as a
+supported pattern, and those supplying nothing.}
 \label{tab:transport}
 \end{table}
 
-$393$ servers declare no remote endpoint and no package. They occupy registry
-namespace and appear in discovery results, but nothing in their record
-describes how a client would reach them. A further $262$ servers are marked
-deprecated but remain listed.
+$387$ servers declare no remote endpoint and no package, but that alone is not
+a defect. The specification documents a ``custom installation path'' pattern in
+which a server omits both and supplies a \texttt{websiteUrl} pointing at setup
+documentation, and $198$ servers follow it.
+
+The defect is the remaining $189$: no endpoint, no package, and no
+\texttt{websiteUrl}. They occupy registry namespace and appear in discovery
+results, and nothing in their record describes how a client would reach them.
+A further $262$ servers are marked deprecated but remain listed.
+
+We report this correction explicitly because our first pass counted all $387$,
+which overstates the problem by roughly a factor of two. Any validation rule
+built on the larger figure would reject the registry's own documented example.
 
 \subsection{Publisher concentration}
 
@@ -198,8 +215,9 @@ should not.
 
 We measure only what records declare. We did not attempt to connect to any
 endpoint, so we cannot say how many of the $24{,}732$ servers that \emph{do}
-declare a transport are actually reachable. The $393$ figure is a lower bound
-on unusable entries, established from the records alone.
+declare a transport are actually reachable. The $189$ figure counts entries
+that describe no route to the server at all; it is a lower bound on unusable
+entries, established from the records alone.
 
 MinHash-LSH offers no recall guarantee, so cluster counts are lower bounds;
 every reported pair was verified with its exact Jaccard score.
@@ -216,10 +234,10 @@ analysis, which is the caveat that matters most: the endpoint returns version
 history, and reading it as a catalogue turns a $3.6\%$ duplication rate into a
 $74.5\%$ one.
 
-The concrete defect worth fixing is small and specific. $393$ servers are
-listed with no way to reach them, $262$ deprecated servers remain in the
-listing, and eight entries were published without their template being filled
-in. These are validation gaps rather than design flaws, and a registry-side
+The concrete defect worth fixing is small and specific. $189$ servers are
+listed with no way to reach them and no documentation pointing elsewhere,
+$262$ deprecated servers remain in the listing, and eight entries were
+published without their template being filled in. These are validation gaps rather than design flaws, and a registry-side
 check at publication time would close all three.
 
 \section*{Reproducibility}
