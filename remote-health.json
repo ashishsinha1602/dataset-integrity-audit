@@ -1,0 +1,43 @@
+{
+  "active_servers_with_remotes": 13805,
+  "remotes_probed": 14272,
+  "by_class": {
+    "auth": 2487,
+    "ok": 9742,
+    "timeout": 191,
+    "http_404": 1090,
+    "dns": 647,
+    "tls": 115
+  },
+  "hard_unreachable_remotes": 1852,
+  "servers_with_no_working_remote": 1748,
+  "auth_walled_remotes": 2487,
+  "timeouts_not_counted": 191,
+  "dead_server_examples": [
+    "ai.adoraads/beauty",
+    "ai.agenticterminal/directory",
+    "ai.alpic.test/test-mcp-server",
+    "ai.arclan/registry",
+    "ai.arpi/arpi-mcp",
+    "ai.autorfp/mcp",
+    "ai.auxen/auxen",
+    "ai.bankee/inferventis-mcp",
+    "ai.bareun/bareun",
+    "ai.baselight/baselight",
+    "ai.beket/audit",
+    "ai.buildwithorbit/orbit",
+    "ai.buyersense/buyersense",
+    "ai.clarid/compliance",
+    "ai.cobbles/cobbles",
+    "ai.com.mcp/hapi-mcp",
+    "ai.com.mcp/skills-search",
+    "ai.deskcrew/agentic",
+    "ai.facesign/facesign-mcp",
+    "ai.fodda/brand-intelligence",
+    "ai.fodda/deep-research",
+    "ai.fodda/earnings-intelligence",
+    "ai.fodda/expert-consult",
+    "ai.fodda/topic-research",
+    "ai.infolang/mcp"
+  ]
+}
