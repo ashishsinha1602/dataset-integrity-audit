@@ -24,7 +24,8 @@ GH = r"C:\Program Files\GitHub CLI\gh.exe"
 CSV_PATH = Path(__file__).with_name("traction.csv")
 FIELDS = ["date", "stars", "forks", "watchers", "views_14d", "uniques_14d",
           "clones_14d", "unique_cloners_14d", "top_referrers",
-          "mcp_issue_comments", "mcp_discussion_comments", "mcp_discussion_upvotes"]
+          "mcp_issue_comments", "mcp_discussion_comments",
+          "mcp_discussion_upvotes", "hf_issue_comments"]
 
 # Threads opened on the MCP registry. A maintainer reply on either is a
 # stronger early signal than any number on our own repo, so they are tracked
@@ -32,6 +33,12 @@ FIELDS = ["date", "stars", "forks", "watchers", "views_14d", "uniques_14d",
 MCP_REPO = "modelcontextprotocol/registry"
 MCP_ISSUE = 1579
 MCP_DISCUSSION = 1580
+HF_REPO = "huggingface/hub-docs"
+HF_ISSUE = 2743
+
+# Our own accounts. A comment from one of these is not a reply from anyone --
+# counting them makes the alert fire on our own posts, every day, forever.
+OURS = {"ashishsinha1602", "Xdott"}
 
 
 def gh_api(path, jq=None):
@@ -71,23 +78,33 @@ def collect():
             row[f"{key}_14d"] = ""
             row["uniques_14d" if key == "views" else "unique_cloners_14d"] = ""
 
-    try:
-        issue = json.loads(gh_api(
-            f"repos/{MCP_REPO}/issues/{MCP_ISSUE}"))
-        row["mcp_issue_comments"] = issue.get("comments", 0)
-    except Exception as exc:
-        print(f"  note: MCP issue unavailable ({exc})")
-        row["mcp_issue_comments"] = ""
+    # Count only comments from other people, not our own follow-ups.
+    for label, repo, num in (("mcp_issue", MCP_REPO, MCP_ISSUE),
+                             ("hf_issue", HF_REPO, HF_ISSUE)):
+        try:
+            comments = json.loads(gh_api(
+                f"repos/{repo}/issues/{num}/comments?per_page=100"))
+            row[f"{label}_comments"] = sum(
+                1 for c in comments
+                if (c.get("user") or {}).get("login") not in OURS)
+        except Exception as exc:
+            print(f"  note: {label} unavailable ({exc})")
+            row[f"{label}_comments"] = ""
 
     try:
+        # Fetch authors, not just a count -- totalCount includes our own
+        # comments, which made this alert fire on our own corrections.
         q = ('{repository(owner:"modelcontextprotocol",name:"registry")'
-             '{discussion(number:%d){comments{totalCount} upvoteCount}}}'
+             '{discussion(number:%d){upvoteCount '
+             'comments(first:100){nodes{author{login}}}}}}'
              % MCP_DISCUSSION)
         d = json.loads(subprocess.run(
             [GH, "api", "graphql", "-f", f"query={q}"],
             capture_output=True, text=True, timeout=60).stdout
         )["data"]["repository"]["discussion"]
-        row["mcp_discussion_comments"] = d["comments"]["totalCount"]
+        row["mcp_discussion_comments"] = sum(
+            1 for n in d["comments"]["nodes"]
+            if ((n.get("author") or {}).get("login")) not in OURS)
         row["mcp_discussion_upvotes"] = d["upvoteCount"]
     except Exception as exc:
         print(f"  note: MCP discussion unavailable ({exc})")
@@ -143,14 +160,16 @@ def main():
     print(f"  14d views {row['views_14d']} ({row['uniques_14d']} unique) | "
           f"clones {row['clones_14d']} ({row['unique_cloners_14d']} unique)")
     print(f"  referrers: {row['top_referrers']}")
-    print(f"  MCP issue #{MCP_ISSUE}: {row['mcp_issue_comments']} comment(s) | "
-          f"discussion #{MCP_DISCUSSION}: "
-          f"{row['mcp_discussion_comments']} comment(s), "
-          f"{row['mcp_discussion_upvotes']} upvote(s)")
-    if str(row.get("mcp_issue_comments") or "0") not in ("0", ""):
-        print("  *** someone replied on the MCP issue - go look ***")
-    if str(row.get("mcp_discussion_comments") or "0") not in ("0", ""):
-        print("  *** someone replied on the MCP discussion - go look ***")
+    print(f"  threads (replies from others only):")
+    print(f"    mcp #{MCP_ISSUE}: {row['mcp_issue_comments']} | "
+          f"mcp #{MCP_DISCUSSION}: {row['mcp_discussion_comments']} "
+          f"({row['mcp_discussion_upvotes']} upvote) | "
+          f"hf-docs #{HF_ISSUE}: {row['hf_issue_comments']}")
+    for key, where in (("mcp_issue_comments", f"MCP issue #{MCP_ISSUE}"),
+                       ("mcp_discussion_comments", f"MCP discussion #{MCP_DISCUSSION}"),
+                       ("hf_issue_comments", f"hub-docs issue #{HF_ISSUE}")):
+        if str(row.get(key) or "0") not in ("0", ""):
+            print(f"  *** someone replied on {where} - go look ***")
 
     if len(history) > 1:
         prev = history[-2]
