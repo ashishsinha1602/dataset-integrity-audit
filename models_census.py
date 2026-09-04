@@ -16,6 +16,20 @@ inherits terms from its base model without restating them, and this counts
 that as absent. The claim is about what a consumer can determine from the
 record, which is the thing that matters when deciding whether you may use it.
 
+Weight the licence figure by use before repeating it. 64.04% of models carry
+no licence, but only 8.68% of downloads go to those models: the gap sits
+almost entirely in the unused tail. Zero-download models are 73.3%
+unlicensed against 56.7% for models with any downloads, and among the 100
+most-downloaded models just 8 are unlicensed. "Two thirds of the catalogue is
+unlicensed" is true and misleading; the defensible statement is that 253
+million downloads in 30 days went to models whose listing grants no rights,
+and that 29.9% of the top 100,000 models are unlicensed.
+
+Base-model inheritance does not explain it away either. Only 16.2% of
+unlicensed models carry a base-model tag, so the great majority are not
+fine-tunes that merely omitted to restate upstream terms. The share is also
+flat over time, between 59.6% and 67.9% for every cohort since 2022.
+
 Downloads are 30-day counts, a flow rather than a stock, so a model released
 last week and one released in 2021 are not on equal footing here.
 """
