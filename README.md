@@ -92,7 +92,7 @@ Overlap between a training split and the split used to score a model inflates th
 | Near-duplicate question (Jaccard ≥ 0.70) | 7 (0.68%) | 0 |
 | Shared group values | 0 databases | – |
 
-**GSM8K has zero measurable train/test overlap** — not one identical question, answer, or near-duplicate. Because that result came from LSH, which offers no recall guarantee, it was re-run under exact cross-product search over all 9,852,887 pairs: still zero, in 13 seconds. A zero from an approximate method is exactly where verification is worth the cost.
+**GSM8K has zero measurable train/test overlap** — not one identical question, answer, or near-duplicate. Because that result came from LSH, which offers no recall guarantee, it was re-run under exact cross-product search over all 9,856,887 pairs (7,473 x 1,319): still zero, in 13 seconds. Note that the committed `prepared/gsm8k-leak/leak_summary.json` is the LSH run; the exact re-run is not yet checked in, so take that sentence on trust until it is. A zero from an approximate method is exactly where verification is worth the cost.
 
 **Both benchmarks' split separations hold.** Spider's two splits share no databases at all, so an identical question across them is being asked of entirely different data.
 
